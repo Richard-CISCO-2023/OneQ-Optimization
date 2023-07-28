@@ -6,10 +6,14 @@ from Generate_Tree import *
 from Generate_Cyclic_Graph import *
 from collections import deque
 
+##########################################################
+################ Multi Layers ############################
+##########################################################
+
 # 定义网格大小
-GraphN = 100
-NetN = 50
-NetM = 50
+GraphN = 5000
+NetN = 30
+NetM = 30
 MaxDegree = 3
 
 # A star search node
@@ -44,7 +48,8 @@ class OneWaySearchNode:
         return self.f > other.f      
 
 def create_graph():
-    graph = generate_cyclic_graph(GraphN)
+    # graph = generate_cyclic_graph(GraphN)
+    graph = create_tree(GraphN)
     return graph
 
 def show_graph(graph):
@@ -54,14 +59,17 @@ def show_graph(graph):
     show_cyclic_graph(graph)
     return
 
-def create_net():
+def create_net(alloca_nodes):
     net = nx.Graph()
+    for key in alloca_nodes.keys():
+        net.add_node(alloca_nodes[key], node_val = key, pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM))
 
     # 添加节点到网格中
     for i in range(NetN):
         for j in range(NetM):
-            # -GraphN - 1 意味着没有分配节点，负数意味着是辅助节点，其绝对值是表示了它的归属性
-            net.add_node(i * NetM + j, node_val = -GraphN - 1, pos = (j, i))
+            if i * NetM + j not in net.nodes():
+                # -GraphN - 1 意味着没有分配节点，负数意味着是辅助节点，其绝对值是表示了它的归属性
+                net.add_node(i * NetM + j, node_val = -GraphN - 1, pos = (j, i))
 
     return net
 
@@ -80,7 +88,7 @@ def show_net(net, index):
             nodes_color.append('blue')
             #print(node, net.nodes[node]['node_val'])
     plt.figure(figsize=(NetN, NetM))
-    nx.draw(net, pos=nodes_pos, node_size=10, node_color=nodes_color, font_size=12, arrowsize=20)
+    nx.draw(net, pos=nodes_pos, node_size=40, node_color=nodes_color, font_size=12, arrowsize=20)
     plt.savefig("graph.png")
     plt.show()
     return
@@ -130,32 +138,47 @@ def count_free_space(net, pos):
     return free_space
 
 
-def map_and_route(graph, net):
-    unmatched_graph = nx.Graph()
+def map_and_route(graph, net, alloca_nodes_init):
     subgraphs = list(nx.connected_components(graph))
-    unallocated_net_nodes = list(net.nodes())
+    unallocated_net_nodes = []
+    for nnode in net.nodes():
+        if net.nodes[nnode]['node_val'] == -GraphN - 1:
+            unallocated_net_nodes.append(nnode)
     # #print(unallocated_net_nodes)
     # for G in subgraphs:
     #     #print(G)
     for G in subgraphs:
         # 起始的时候从空余位置中任意选一个位置开始
-        #pos = unallocated_net_nodes[random.randint(int((len(unallocated_net_nodes) - 1) / 4), int((len(unallocated_net_nodes) - 1) * 3 / 4))]
+        
         # pos = unallocated_net_nodes[random.randint(int((len(unallocated_net_nodes) - 1)/ 4), int((len(unallocated_net_nodes) - 1) * 3/ 4))]
         #pos = unallocated_net_nodes[random.randint(0, len(unallocated_net_nodes) - 1)]
-        pos = 1275
+        # pos = 1275
         G_list = list(G)
-        net.nodes[pos]['node_val'] = G_list[0]
-        unallocated_net_nodes.remove(pos)
+
+        is_nodes_in_G_unalloca = 1
+        for nnode in G_list:
+            if nnode in alloca_nodes_init.keys():
+                is_nodes_in_G_unalloca = 0
+        if is_nodes_in_G_unalloca:
+            pos = unallocated_net_nodes[random.randint(int((len(unallocated_net_nodes) - 1) / 4), int((len(unallocated_net_nodes) - 1) * 3 / 4))]
+            net.nodes[pos]['node_val'] = G_list[0]
+            unallocated_net_nodes.remove(pos)
+            alloca_incomplete_nodes = []
+            alloca_incomplete_nodes.append(G_list[0])
+            alloca_nodes = {}
+            alloca_nodes[G_list[0]] = pos
+        else:
+            alloca_incomplete_nodes = []
+            for nnode in G_list:
+                if nnode in alloca_nodes_init.keys():
+                    alloca_incomplete_nodes.append(nnode)
+            alloca_nodes = alloca_nodes_init.copy()
         
         if len(G_list) == 1:
             continue
-
-        alloca_incomplete_nodes = []
-        alloca_incomplete_nodes.append(G_list[0])
-
-        alloca_nodes = {}
-        alloca_nodes[G_list[0]] = pos
         
+
+
         # 开始设置路由路线
         while len(alloca_incomplete_nodes):
             #print(alloca_nodes)
@@ -177,7 +200,6 @@ def map_and_route(graph, net):
                 alloca_incomplete_nodes.remove(node)
                 continue
 
-            alloca_incomplete_nodes.remove(node)
 
             neigh_graph_nodes_all = list(graph.neighbors(node))
             neigh_graph_nodes = []
@@ -208,7 +230,13 @@ def map_and_route(graph, net):
             # print("search free_space", free_space, neigh_graph_size)
             heapq.heappush(search_set,search_node)
             search_flag = 0
+            error1_flag = 0
+            search_index = 0
             while len(search_set):
+                if search_index >= 2000:
+                    break
+                # print("keep searching", search_index)
+                search_index += 1 
                 search_node = heapq.heappop(search_set)
                 if search_node.f >= neigh_graph_size:
                     copy_net  = search_node.net.copy()
@@ -299,11 +327,12 @@ def map_and_route(graph, net):
                         # show_net(new_node.net)
                         heapq.heappush(search_set, new_node)
             if search_flag == 0:
-                print('error1')
+                # print('error1')
+                error1_flag = 1
                 index = []
                 index.append(pos)
-                show_net(search_node.net, index)
-            
+                # show_net(search_node.net, index)
+            error2_flag = 0
             while len(neigh_graph_nodes_alloca):
                 node_dest = neigh_graph_nodes_alloca[0]
                 neigh_graph_nodes_alloca.remove(node_dest)
@@ -345,10 +374,13 @@ def map_and_route(graph, net):
                         new_net.add_edge(nnode, up_nnode)
                     if left_nnode in node_set and left_nnode % NetM != NetM - 1:
                         new_net.add_edge(nnode, left_nnode)
+                # print("search for shortest path")
                 has_shortest_path = nx.has_path(new_net, source=pos_src, target=pos_dest)
+                # print("shortest path found")
                 if has_shortest_path == 0:
                     # show_graph(net)
-                    print("error2")
+                    # print("error2")
+                    error2_flag = 1
                 else:
                     shortest_path = nx.shortest_path(new_net, source=pos_src, target=pos_dest)
                     path_nodes = shortest_path[1:]
@@ -363,34 +395,46 @@ def map_and_route(graph, net):
                     if len(list(graph.neighbors(node_dest))) == 0:
                         graph.remove_node(node_dest)  
                         alloca_incomplete_nodes.remove(node_dest)   
-                    show_net(net,[pos_src, pos_dest])          
+                    # show_net(net,[pos_src, pos_dest])          
 
+            alloca_incomplete_nodes.remove(node)
         all_nodes = list(graph.nodes()).copy() 
         for nnode in all_nodes:
             if len(list(graph.neighbors(nnode))) == 0:
                 graph.remove_node(nnode)
+                
     return net, graph
 
-def one_layer_map(graph):
+def one_layer_map(graph, alloca_nodes):
     # 创建网格
-    net = create_net()
+    net = create_net(alloca_nodes)
     index = []
-    show_net(net, index)
-
+    # show_net(net, index)
+    # print(alloca_nodes)
     # 图 -> 网格
-    net, unmatched_graph = map_and_route(graph, net)
-    print("finish")
+    net, unmatched_graph = map_and_route(graph, net, alloca_nodes)
+    # print("finish")
     index = []
-    show_net(net, index)
-    show_graph(unmatched_graph)
-    return
+    # show_net(net, index)
+    # show_graph(unmatched_graph)
+    return net, unmatched_graph
 
 def main():
     # 创建图
     graph = create_graph()
-    show_graph(graph)
-    one_layer_map(graph)
-
+    # show_graph(graph)
+    index = 0
+    alloca_nodes = {}
+    while len(list(graph.nodes())):
+        index = index + 1
+        net, graph  = one_layer_map(graph, alloca_nodes)
+        alloca_nodes.clear()
+        for nnode in net.nodes():
+            if net.nodes[nnode]['node_val'] > 0 and net.nodes[nnode]['node_val'] in graph.nodes():
+                alloca_nodes[net.nodes[nnode]['node_val']] = nnode
+        print(alloca_nodes.values())
+        # show_net(net, alloca_nodes.values())    
+    print("number of layers", index)
     # # 创建网格
     # net = create_net()
     # index = []
