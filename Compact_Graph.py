@@ -7,11 +7,13 @@ from Generate_Cyclic_Graph import *
 from collections import deque
 
 ##########################################################
-################ Multi Layers ############################
+#                                                        #
+#                     Multi Layers                       #
+#                                                        #
 ##########################################################
 
 # 定义网格大小
-GraphN = 5000
+GraphN = 3000
 NetN = 30
 NetM = 30
 MaxDegree = 3
@@ -73,7 +75,7 @@ def create_net(alloca_nodes):
 
     return net
 
-def show_net(net, index):
+def show_net(net, index, layer_number):
     nodes_pos = nx.get_node_attributes(net, 'pos')
     nodes_color = []
     for node in net.nodes():
@@ -89,8 +91,8 @@ def show_net(net, index):
             #print(node, net.nodes[node]['node_val'])
     plt.figure(figsize=(NetN, NetM))
     nx.draw(net, pos=nodes_pos, node_size=40, node_color=nodes_color, font_size=12, arrowsize=20)
-    plt.savefig("graph.png")
-    plt.show()
+    plt.savefig("layers/layer" + str(layer_number) + ".png")
+    # plt.show()
     return
 
 def count_pos_untake(net, pos):
@@ -328,6 +330,47 @@ def map_and_route(graph, net, alloca_nodes_init):
                         heapq.heappush(search_set, new_node)
             if search_flag == 0:
                 # print('error1')
+                if search_node.f:
+                    net = search_node.net.copy()
+                    count_pos_untake_list = count_pos_untake(net, search_node.path[-1])
+                    while len(neigh_graph_nodes) and len(count_pos_untake_list):
+                        pos_alloca = count_pos_untake_list[0]
+                        count_pos_untake_list.remove(pos_alloca)
+                        # up_pos = pos_alloca - NetM
+                        # down_pos = pos_alloca + NetM
+                        # left_pos = pos_alloca - 1
+                        # right_pos = pos_alloca + 1
+                        # # 判别一下pos会不会造成堵死
+                        blocked_add_flag = 0
+                        # if up_pos >= 0 and copy_net.nodes[up_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(copy_net, up_pos))  <= 2 and copy_net.nodes[up_pos]['node_val'] in copy_alloca_incomplete_nodes:
+                        #     blocked_add_flag = 1
+
+                        # if down_pos <= NetM * NetN - 1 and copy_net.nodes[down_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(copy_net, down_pos)) <= 2 and copy_net.nodes[down_pos]['node_val'] in copy_alloca_incomplete_nodes:
+                        #     blocked_add_flag = 1
+
+                        # if left_pos % NetM != NetM - 1 and copy_net.nodes[left_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(copy_net, left_pos)) <= 2 and copy_net.nodes[left_pos]['node_val'] in copy_alloca_incomplete_nodes:
+                        #     blocked_add_flag = 1
+
+                        # if right_pos % NetM != 0 and copy_net.nodes[right_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(copy_net, right_pos)) <= 2 and copy_net.nodes[right_pos]['node_val'] in copy_alloca_incomplete_nodes:
+                        #     blocked_add_flag = 1
+                        
+                        # if len(list(count_pos_untake(copy_net, pos_alloca))) == 0:
+                        #     if len(list(copy_graph.neighbors(copy_neigh_graph_nodes[0]))):
+                        #         blocked_add_flag = 1
+                        
+                        # print("blocked_add_flag", blocked_add_flag)
+                        if blocked_add_flag == 0:
+                            node_alloca = neigh_graph_nodes[0]
+                            neigh_graph_nodes.remove(node_alloca)
+                            net.nodes[pos_alloca]['node_val'] = node_alloca
+                            net.add_edge(search_node.path[-1], pos_alloca)
+                            graph.remove_edge(node, node_alloca)
+                            alloca_nodes[node_alloca] = pos_alloca
+                            #show_net(search_node.net)
+                            if len(list(graph.neighbors(node_alloca))):
+                                alloca_incomplete_nodes.append(node_alloca)
+                            else:
+                                graph.remove_node(node_alloca) 
                 error1_flag = 1
                 index = []
                 index.append(pos)
@@ -401,8 +444,7 @@ def map_and_route(graph, net, alloca_nodes_init):
         all_nodes = list(graph.nodes()).copy() 
         for nnode in all_nodes:
             if len(list(graph.neighbors(nnode))) == 0:
-                graph.remove_node(nnode)
-                
+                graph.remove_node(nnode)  
     return net, graph
 
 def one_layer_map(graph, alloca_nodes):
@@ -432,8 +474,8 @@ def main():
         for nnode in net.nodes():
             if net.nodes[nnode]['node_val'] > 0 and net.nodes[nnode]['node_val'] in graph.nodes():
                 alloca_nodes[net.nodes[nnode]['node_val']] = nnode
-        print(alloca_nodes.values())
-        # show_net(net, alloca_nodes.values())    
+        # print(alloca_nodes.values())
+        show_net(net, alloca_nodes.values(), index)    
     print("number of layers", index)
     # # 创建网格
     # net = create_net()
