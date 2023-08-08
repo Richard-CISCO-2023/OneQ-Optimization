@@ -20,25 +20,41 @@ class JCZCircuit:
     def __init__(self):
         self.qubits = []
         self.gates = []
-        self.qubit_gates = {}
 
     def qubits_init(self, qubits):
         self.qubits = qubits
-        for q in qubits:
-            self.qubit_gates[q] = []
+
+    def add_J(self, qubit, phase):
+        self.gates.append(JGate(qubit, phase))
 
     def add_H(self, qubit):
-        self.qubit_gates[qubit].append(JGate(qubit, 0))
         self.gates.append(JGate(qubit, 0))
 
     def add_X(self, qubit):
-        self.qubit_gates[qubit].append(JGate(qubit, 4))
-        self.qubit_gates[qubit].append(JGate(qubit, 0))
         self.gates.append(JGate(qubit, 4))
         self.gates.append(JGate(qubit, 0))
     
     def add_Z(self, qubit):
-        self.qubit_gates[qubit].append(JGate(qubit, 0))
-        self.qubit_gates[qubit].append(JGate(qubit, 4))
         self.gates.append(JGate(qubit, 0))
         self.gates.append(JGate(qubit, 4))
+    
+    def add_T(self, qubit):
+        self.gates.append(JGate(qubit, 0))
+        self.gates.append(JGate(qubit, 1))
+    
+    def add_S(self, qubit):
+        self.gates.append(JGate(qubit, 0))
+        self.gates.append(JGate(qubit, 2))
+    
+    def add_Rz(self, qubit, phase):
+        self.gates.append(JGate(qubit, 0))
+        self.gates.append(JGate(qubit, phase))
+
+    def add_CZ(self, qubit1, qubit2):
+        self.gates.append(CZGate(qubit1, qubit2))
+
+    def add_CNOT(self, qubit1, qubit2):
+        self.add_H(qubit2)
+        self.add_CZ(qubit1, qubit2)
+        self.add_H(qubit2)
+    
