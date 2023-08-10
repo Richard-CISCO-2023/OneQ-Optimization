@@ -70,7 +70,7 @@ def turn_to_graph(gates_list, qubits):
                 if gate.phase % 2 == 0:
                     add_undirected_edge(graph, node_index, node_index + 1)
                 else:
-                    print("non clifford")
+                    # print("non clifford")
                     non_clifford_index += 1
                     graph.add_edge(node_index, node_index + 1)
                 qubit = gate.qubit
@@ -88,7 +88,7 @@ def turn_to_graph(gates_list, qubits):
                 if gate.phase % 2 == 0:
                     add_undirected_edge(graph, pre_node, node_index)
                 else:
-                    print("non clifford")
+                    # print("non clifford")
                     non_clifford_index += 1
                     graph.add_edge(pre_node, node_index)
                 pre_nodes[qubit] = node_index
@@ -141,7 +141,7 @@ def turn_to_graph(gates_list, qubits):
             CZ_consecutive_path.append(node_q1)
             CZ_consecutive_path.append(node_q2)
             # print(CZ_consecutive_path)
-    print("non clifford gates number ", non_clifford_index)
+            # print("non clifford gates number", non)
 
     return graph
 
