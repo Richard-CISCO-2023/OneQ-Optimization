@@ -1,5 +1,3 @@
-from Graph_State import *
-
 def is_measurable(gs, measured_nodes, cur_node):
     pre_nodes_layer_order = []
     pre_nodes = []

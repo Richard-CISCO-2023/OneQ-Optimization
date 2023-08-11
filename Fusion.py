@@ -1,10 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-import math
 
-def generate_special_graph_with_nodes(num_nodes):
-    G = nx.random_geometric_graph(num_nodes, 0.4)  # Adjust the second parameter for desired distance
-    return G
+# def generate_special_graph_with_nodes(num_nodes):
+#     G = nx.random_geometric_graph(num_nodes, 0.4)  # Adjust the second parameter for desired distance
+#     return G
 
 def show_graph(graph, added_nodes):
     pos = nx.spring_layout(graph)
@@ -34,6 +33,7 @@ def fusion_graph(graph, max_degree):
             pre_node = nodes_size
             added_nodes.append(nodes_size)
             graph.add_node(nodes_size)
+            graph.nodes[nodes_size]['layer'] = graph.nodes[nnode]['layer']
             graph.add_edge(nnode, nodes_size)
             nodes_size += 1
             # show_graph(graph, added_nodes)
@@ -47,6 +47,7 @@ def fusion_graph(graph, max_degree):
                         graph.add_edge(pre_node, neigh_nnode)
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
+                    graph.nodes[nodes_size]['layer'] = graph.nodes[pre_node]['layer']
                     graph.add_edge(pre_node, nodes_size)
                     pre_node = nodes_size
                     nodes_size += 1
@@ -60,13 +61,13 @@ def fusion_graph(graph, max_degree):
                 # show_graph(graph, added_nodes)
         
     return graph, added_nodes
-def main():
-    graph = generate_special_graph_with_nodes(10)   
-    show_graph(graph, [])
-    # for nnode in graph.nodes():
-    #     print(nnode)
-    graph, added_nodes = fusion_graph(graph, 3)
-    show_graph(graph, added_nodes)
+# def main():
+#     graph = generate_special_graph_with_nodes(10)   
+#     show_graph(graph, [])
+#     # for nnode in graph.nodes():
+#     #     print(nnode)
+#     graph, added_nodes = fusion_graph(graph, 3)
+#     show_graph(graph, added_nodes)
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
