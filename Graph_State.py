@@ -53,7 +53,6 @@ def turn_to_graph(gates_list, qubits):
     pos_x = 0
     pre_nodes = {}
     CZ_consecutive_path = []
-    non_clifford_index = 0
     for q in range(qubits):
         pre_nodes[q] = -1
 
@@ -71,7 +70,6 @@ def turn_to_graph(gates_list, qubits):
                     add_undirected_edge(graph, node_index, node_index + 1)
                 else:
                     # print("non clifford")
-                    non_clifford_index += 1
                     graph.add_edge(node_index, node_index + 1)
                 qubit = gate.qubit
                 pre_nodes[qubit] = node_index + 1
@@ -89,7 +87,6 @@ def turn_to_graph(gates_list, qubits):
                     add_undirected_edge(graph, pre_node, node_index)
                 else:
                     # print("non clifford")
-                    non_clifford_index += 1
                     graph.add_edge(pre_node, node_index)
                 pre_nodes[qubit] = node_index
                 pos_x += 3
@@ -141,7 +138,6 @@ def turn_to_graph(gates_list, qubits):
             CZ_consecutive_path.append(node_q1)
             CZ_consecutive_path.append(node_q2)
             # print(CZ_consecutive_path)
-            # print("non clifford gates number", non)
 
     return graph
 
@@ -165,8 +161,8 @@ def generate_graph_state(nqubit, depth):
             output_nodes.append(nnode)
         else:
             colors.append('gray')
-    labels = nx.get_node_attributes(graph, 'node_val')
-    node_pos = nx.get_node_attributes(graph, 'pos')
+    # labels = {node: str(node) for node in graph.nodes()}
+    # node_pos = nx.get_node_attributes(graph, 'pos')
 
-    nx.draw(graph, pos = node_pos, node_color = colors, node_size = 10)
-    return graph, input_nodes, node_pos, colors
+    # nx.draw(graph, pos = node_pos, node_color = colors, node_size = 10, labels = labels,font_size = 8)
+    return graph, input_nodes, colors
