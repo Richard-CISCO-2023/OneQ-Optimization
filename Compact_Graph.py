@@ -88,7 +88,7 @@ class OneWaySearchNode:
     def __lt__(self, other):
         return self.f > other.f      
 
-def one_layer_map(graph, alloca_nodes, cur_layer):
+def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
     # initial net
     net = create_net(alloca_nodes)
 
@@ -97,12 +97,11 @@ def one_layer_map(graph, alloca_nodes, cur_layer):
     # nodes on the current layer
     for gnode in graph.nodes():
         if graph.nodes[gnode]['layer'] == cur_layer:
+            if gnode not in alloca_nodes_cache.keys():
+                cur_layer_nodes.append(gnode)
+        elif gnode in alloca_nodes.keys():
             cur_layer_nodes.append(gnode)
-    
-    # add alloca_nodes
-    for anode in alloca_nodes:
-        if anode not in cur_layer_nodes:
-            cur_layer_nodes.append(anode)
+
     
     # get the subgraph to be allocated
     cur_layer_graph = graph.subgraph(cur_layer_nodes)
@@ -117,7 +116,7 @@ def one_layer_map(graph, alloca_nodes, cur_layer):
         # check whether all nodes in this subgraph unallocated
         is_all_gnodes_unalloca = True
         for gnode in gnodes:
-            if gnode in alloca_nodes:
+            if gnode in alloca_nodes.keys():
                 is_all_gnodes_unalloca = False
                 break
         
@@ -164,7 +163,7 @@ def one_layer_map(graph, alloca_nodes, cur_layer):
 
             for gnode in neigh_graph_nodes_all:
                 if gnode not in list(alloca_nodes.keys()):
-                    if graph.nodes[gnode]['layer'] == cur_layer:
+                    if gnode in cur_layer_nodes:
                         neigh_graph_nodes_unalloca.append(gnode)
                 else:
                     neigh_graph_nodes_alloca.append(gnode)                
@@ -194,6 +193,23 @@ def one_layer_map(graph, alloca_nodes, cur_layer):
                     search_node_path = search_node.path
                     count_pos_untake_list = count_pos_untake(search_node_net, search_node_path[-1])
                     for untake_pos in count_pos_untake_list:
+                        up_pos = untake_pos - NetM
+                        down_pos = untake_pos + NetM
+                        left_pos = untake_pos - 1
+                        right_pos = untake_pos + 1
+
+                        # check whether the path will lead to blockness
+                        if up_pos >= 0 and search_node_net.nodes[up_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, up_pos))  <= 1 and up_pos in alloca_incomplete_nodes:
+                            continue
+
+                        if down_pos <= NetM * NetN - 1 and search_node_net.nodes[down_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, down_pos)) <= 2 and down_pos in alloca_incomplete_nodes:
+                            continue
+
+                        if left_pos % NetM != NetM - 1 and search_node_net.nodes[left_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, left_pos)) <= 2 and left_pos in alloca_incomplete_nodes:
+                            continue
+
+                        if right_pos % NetM != 0 and search_node_net.nodes[right_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, right_pos)) <= 2 and right_pos in alloca_incomplete_nodes:
+                            continue
                         new_node_net = search_node_net.copy()
                         new_node_net.add_edge(search_node_path[-1], untake_pos)
                         new_node_net.nodes[untake_pos]['node_val'] = - alloca_node
@@ -273,6 +289,8 @@ def one_layer_map(graph, alloca_nodes, cur_layer):
 
     return net, graph
 
+
+
 def compact_graph(graph):
     # number of graph nodes
     GraphN = len(list(graph.nodes()))
@@ -280,34 +298,44 @@ def compact_graph(graph):
     # identify the mapping layer number
     layer_index = 0
 
-    # nodes already allocated on the net but still remained in the graph
     alloca_nodes = {}
-
+    
+    alloca_nodes_cache = {}
+    
     # map and route
     while len(list(graph.nodes())):
         # get the cur layer order in partition graph
         cur_layer = -1
         for gnode in graph.nodes():
-            if gnode not in alloca_nodes.keys():
+            if gnode not in alloca_nodes_cache.keys():
                 if cur_layer == -1:
                     cur_layer = graph.nodes[gnode]['layer']
                 else:
                     cur_layer = min(graph.nodes[gnode]['layer'], cur_layer)
         
+        alloca_nodes.clear()
+        copy_alloca_nodes_cache = alloca_nodes_cache.copy()
+        for alloca_node in copy_alloca_nodes_cache.keys():
+            for gnode in graph.neighbors(alloca_node):
+                if graph.nodes[gnode]['layer'] <= cur_layer or cur_layer == -1:
+                    alloca_nodes[alloca_node] = alloca_nodes_cache[alloca_node]
+                    del alloca_nodes_cache[alloca_node]
+                    break
+        
         # reserve pre graph to show the mapping net
         pre_graph = graph.copy()
         # map and route current layer nodes 
-        net, graph = one_layer_map(graph, alloca_nodes, cur_layer)  
+        net, graph = one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache)  
 
         # get the alloca nodes set  
-        alloca_nodes.clear()
         for nnode in net.nodes():
             if net.nodes[nnode]['node_val'] > 0 and net.nodes[nnode]['node_val'] in graph.nodes():
-                alloca_nodes[net.nodes[nnode]['node_val']] = nnode
+                alloca_nodes_cache[net.nodes[nnode]['node_val']] = nnode
 
         # show the mapping net and save it
         save_net(pre_graph, net, alloca_nodes.values(), layer_index)
         layer_index += 1  
+
     print(GraphN, "nodes")
     print(layer_index, "layers") 
     return
