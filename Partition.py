@@ -47,9 +47,9 @@ def partition(gs, input_nodes):
     for nnode in unmeaured_nodes:
         gs.nodes[nnode]['layer'] = 0
     
-    for input_node in input_nodes:
-        measured_nodes.append(input_node)
-        unmeaured_nodes.remove(input_node)
+    # for input_node in input_nodes:
+    #     measured_nodes.append(input_node)
+    #     unmeaured_nodes.remove(input_node)
 
     while len(unmeaured_nodes):
         # print("unmeasured length", len(unmeaured_nodes))
