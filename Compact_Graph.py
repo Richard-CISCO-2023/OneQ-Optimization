@@ -75,22 +75,28 @@ def create_net(alloca_nodes):
 
     return net
 
-def show_net(net, index, layer_number):
+def show_net(pre_graph, net, index, layer_number):
     nodes_pos = nx.get_node_attributes(net, 'pos')
     nodes_color = []
+    labels = {}
     for node in net.nodes():
         if node in index:
             nodes_color.append('green')
+            labels[node] = str(pre_graph.nodes[net.nodes[node]['node_val']]['layer'])
             continue
         if net.nodes[node]['node_val'] == -GraphN - 1:
             nodes_color.append('gray')
+            labels[node] = ""
         elif net.nodes[node]['node_val'] < 0:
             nodes_color.append('pink')
+            labels[node] = ""
         else:
             nodes_color.append('blue')
+            labels[node] = str(pre_graph.nodes[net.nodes[node]['node_val']]['layer'])
             #print(node, net.nodes[node]['node_val'])
+    print(labels)
     plt.figure(figsize=(NetN, NetM))
-    nx.draw(net, pos=nodes_pos, node_size=40, node_color=nodes_color, font_size=12, arrowsize=20)
+    nx.draw(net, pos=nodes_pos, labels = labels, node_size=40, node_color=nodes_color, font_size=50, arrowsize=20)
     plt.savefig("layers/layer" + str(layer_number) + ".png")
     # plt.show()
     return
@@ -140,8 +146,19 @@ def count_free_space(net, pos):
     return free_space
 
 
-def map_and_route(graph, net, alloca_nodes_init):
-    subgraphs = list(nx.connected_components(graph))
+def map_and_route(graph, net, alloca_nodes_init, cur_layer):
+    cur_layer_nodes = []
+    
+    for nnode in graph.nodes():
+        if graph.nodes[nnode]['layer'] == cur_layer:
+            cur_layer_nodes.append(nnode)
+    
+    for nnode in alloca_nodes_init.keys():
+        if nnode not in cur_layer_nodes:
+            cur_layer_nodes.append(nnode)
+    
+    cur_layer_graph = graph.subgraph(cur_layer_nodes)
+    subgraphs = list(nx.connected_components(cur_layer_graph))
     unallocated_net_nodes = []
     for nnode in net.nodes():
         if net.nodes[nnode]['node_val'] == -GraphN - 1:
@@ -206,10 +223,13 @@ def map_and_route(graph, net, alloca_nodes_init):
             neigh_graph_nodes_all = list(graph.neighbors(node))
             neigh_graph_nodes = []
             neigh_graph_nodes_alloca = []
+
+            is_neigh_unalloca_node_next_layer = False
             
             for nnode in neigh_graph_nodes_all:
                 if nnode not in list(alloca_nodes.keys()):
-                    neigh_graph_nodes.append(nnode)
+                    if graph.nodes[nnode]['layer'] == cur_layer:
+                        neigh_graph_nodes.append(nnode)
                 else:
                     neigh_graph_nodes_alloca.append(nnode)
 
@@ -447,35 +467,43 @@ def map_and_route(graph, net, alloca_nodes_init):
                 graph.remove_node(nnode)  
     return net, graph
 
-def one_layer_map(graph, alloca_nodes):
+def one_layer_map(graph, alloca_nodes, cur_layer):
     # 创建网格
     net = create_net(alloca_nodes)
     index = []
     # show_net(net, index)
     # print(alloca_nodes)
     # 图 -> 网格
-    net, unmatched_graph = map_and_route(graph, net, alloca_nodes)
+    net, unmatched_graph = map_and_route(graph, net, alloca_nodes, cur_layer)
     # print("finish")
     index = []
     # show_net(net, index)
     # show_graph(unmatched_graph)
     return net, unmatched_graph
 
-def main():
-    # 创建图
-    graph = create_graph()
+def compact_graph(graph):
+    # # 创建图
+    # graph = create_graph()
     # show_graph(graph)
     index = 0
     alloca_nodes = {}
     while len(list(graph.nodes())):
+        cur_layer = -1
+        for nnode in graph.nodes():
+            if nnode not in alloca_nodes.keys():
+                if cur_layer == -1:
+                    cur_layer = graph.nodes[nnode]['layer']
+                else:
+                    cur_layer = min(cur_layer, graph.nodes[nnode]['layer'])
         index = index + 1
-        net, graph  = one_layer_map(graph, alloca_nodes)
+        pre_graph = graph.copy()
+        net, graph  = one_layer_map(graph, alloca_nodes, cur_layer)
         alloca_nodes.clear()
         for nnode in net.nodes():
             if net.nodes[nnode]['node_val'] > 0 and net.nodes[nnode]['node_val'] in graph.nodes():
                 alloca_nodes[net.nodes[nnode]['node_val']] = nnode
         # print(alloca_nodes.values())
-        show_net(net, alloca_nodes.values(), index)    
+        show_net(pre_graph, net, alloca_nodes.values(), index)    
     print("number of layers", index)
     # # 创建网格
     # net = create_net()
@@ -489,5 +517,5 @@ def main():
     # show_net(net, index)
     # show_graph(unmatched_graph)
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     compact_graph()
