@@ -49,7 +49,7 @@ def add_undirected_edge(graph, node1, node2):
     return graph
 
 def turn_to_graph(gates_list, qubits):
-    node_index = 0
+    node_index = 1
     pos_x = 0
     pre_nodes = {}
     CZ_consecutive_path = []

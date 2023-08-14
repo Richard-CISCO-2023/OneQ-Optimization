@@ -102,9 +102,15 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
         elif gnode in alloca_nodes.keys():
             cur_layer_nodes.append(gnode)
 
-    
-    # get the subgraph to be allocated
-    cur_layer_graph = graph.subgraph(cur_layer_nodes)
+
+        if len(list(graph.nodes())) == 0:
+            return net, graph
+        copy_cur_layer_nodes = cur_layer_nodes.copy()
+        for cur_layer_node in copy_cur_layer_nodes:
+            if cur_layer_node not in graph.nodes():
+                cur_layer_nodes.remove(cur_layer_node)
+        # get the subgraph to be allocated
+        cur_layer_graph = graph.subgraph(cur_layer_nodes)
 
     # get connected subgraph list
     subgraphs = list(nx.connected_components(cur_layer_graph))
@@ -126,8 +132,14 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
             for nnode in net.nodes():
                 if net.nodes[nnode]['node_val'] == -GraphN - 1:
                     unallocated_net_nodes.append(nnode)
+            if len(unallocated_net_nodes) == 0:
+                # update graph after mapping
+                all_nodes = list(graph.nodes()).copy() 
+                for nnode in all_nodes:
+                    if len(list(graph.neighbors(nnode))) == 0:
+                        graph.remove_node(nnode)  
+                return net, graph
             alloca_pos = unallocated_net_nodes[random.randint(int((len(unallocated_net_nodes) - 1) / 4), int((len(unallocated_net_nodes) - 1) * 3 / 4))]
-            
             # allocate the node to a random position
             net.nodes[alloca_pos]['node_val'] = gnodes[0]
             alloca_nodes[gnodes[0]] = alloca_pos
@@ -281,11 +293,11 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
             
             alloca_incomplete_nodes.remove(alloca_node)
         
-        # update graph after mapping
-        all_nodes = list(graph.nodes()).copy() 
-        for nnode in all_nodes:
-            if len(list(graph.neighbors(nnode))) == 0:
-                graph.remove_node(nnode)  
+    # update graph after mapping
+    all_nodes = list(graph.nodes()).copy() 
+    for nnode in all_nodes:
+        if len(list(graph.neighbors(nnode))) == 0:
+            graph.remove_node(nnode)  
 
     return net, graph
 
