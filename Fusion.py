@@ -61,13 +61,3 @@ def fusion_graph(graph, max_degree):
                 # show_graph(graph, added_nodes)
         
     return graph, added_nodes
-# def main():
-#     graph = generate_special_graph_with_nodes(10)   
-#     show_graph(graph, [])
-#     # for nnode in graph.nodes():
-#     #     print(nnode)
-#     graph, added_nodes = fusion_graph(graph, 3)
-#     show_graph(graph, added_nodes)
-
-# if __name__ == '__main__':
-#     main()
