@@ -89,6 +89,8 @@ class OneWaySearchNode:
         return self.f > other.f      
 
 def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
+    # recycled alloca nodes
+    recycled_nodes = {}
     # initial net
     net = create_net(alloca_nodes)
 
@@ -152,6 +154,7 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
             while len(alloca_incomplete_nodes):
                 # choose one allocated incomplete_node to diffuse
                 alloca_node = alloca_incomplete_nodes[0]
+                alloca_node_neighbor_size = len(list(graph.neighbors(alloca_node)))
 
                 # make sure that it is still in the graph
                 if alloca_node not in graph.nodes():
@@ -288,7 +291,16 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
                             alloca_incomplete_nodes.remove(node_dest) 
                 
                 alloca_incomplete_nodes.remove(alloca_node)
-            
+                alloca_pos = alloca_nodes[alloca_node]
+                if len(list(net.neighbors(alloca_pos))) == 0:
+                    net.nodes[alloca_nodes[alloca_node]]['node_val'] = - GraphN - 1
+                    if alloca_node in cur_layer_nodes:
+                        cur_layer_nodes.remove(alloca_node)
+                    
+                    if alloca_node not in alloca_nodes_cache.keys():
+                        # print("hello")
+                        alloca_nodes_cache[alloca_node] = alloca_nodes[alloca_node]
+                    del alloca_nodes[alloca_node]
             # update graph after mapping
             all_nodes = list(graph.nodes()).copy() 
             for nnode in all_nodes:
@@ -327,6 +339,7 @@ def compact_graph(fgraph):
                     cur_layer = min(graph.nodes[gnode]['layer'], cur_layer)
         
         alloca_nodes.clear()
+        alloca_nodes_index = 0
         copy_alloca_nodes_cache = alloca_nodes_cache.copy()
         for alloca_node in copy_alloca_nodes_cache.keys():
             if alloca_nodes_cache[alloca_node] in alloca_nodes.values():
