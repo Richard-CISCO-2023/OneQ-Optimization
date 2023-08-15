@@ -104,22 +104,29 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
         elif gnode in alloca_nodes.keys():
             cur_layer_nodes.append(gnode)
 
-
-    for i in range(2):
+    
+    failed_nodes = []
+    for i in range(3):
         if len(list(graph.nodes())) == 0:
             return net, graph
         copy_cur_layer_nodes = cur_layer_nodes.copy()
         for cur_layer_node in copy_cur_layer_nodes:
-            if cur_layer_node not in graph.nodes():
+            if cur_layer_node not in graph.nodes() or cur_layer_node in failed_nodes or len(list(graph.neighbors(cur_layer_node))) == 0:
                 cur_layer_nodes.remove(cur_layer_node)
         # get the subgraph to be allocated
         cur_layer_graph = graph.subgraph(cur_layer_nodes)
 
         # get connected subgraph list
         subgraphs = list(nx.connected_components(cur_layer_graph))
-
+        failed_nodes = []
         # begin mapping and routing for each subgraph
         for gnodes in subgraphs:
+            # update graph after mapping
+            all_nodes = list(graph.nodes()).copy() 
+            for nnode in all_nodes:
+                if len(list(graph.neighbors(nnode))) == 0:
+                    graph.remove_node(nnode)  
+
             gnodes = list(gnodes)
             alloca_incomplete_nodes = []
             # check whether all nodes in this subgraph unallocated
@@ -301,12 +308,13 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
                         # print("hello")
                         alloca_nodes_cache[alloca_node] = alloca_nodes[alloca_node]
                     del alloca_nodes[alloca_node]
-            # update graph after mapping
+                if len(list(graph.neighbors(alloca_node))) != 0:
+                    failed_nodes.append(alloca_node)
+                        # update graph after mapping
             all_nodes = list(graph.nodes()).copy() 
             for nnode in all_nodes:
                 if len(list(graph.neighbors(nnode))) == 0:
                     graph.remove_node(nnode)  
-
     return net, graph
 
 
