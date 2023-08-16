@@ -81,27 +81,7 @@ def turn_to_graph(gates_list, qubits):
             else:
                 node_q2 = pre_nodes[qubit2]
             
-            # if node_q1 in CZ_consecutive_path and node_q2 in CZ_consecutive_path:
-            #     # print("hello")
-            #     pos_x1 = graph.nodes[node_q1]['pos'][0]
-            #     pos_x2 = graph.nodes[node_q2]['pos'][0]
-            #     node_size = len(CZ_consecutive_path)
-            #     graph.add_node(node_index, node_val = "Aux", pos = (0, 0))
-            #     graph.remove_edge(CZ_consecutive_path[-1], CZ_consecutive_path[-2])
-            #     graph.add_edge(CZ_consecutive_path[-2], node_index, directed=True)
-            #     graph.add_edge(node_index, CZ_consecutive_path[-1], directed=True)
-            #     remove_node = CZ_consecutive_path[-1]
-            #     CZ_consecutive_path.remove(remove_node)
-            #     CZ_consecutive_path.append(node_index)
-            #     CZ_consecutive_path.append(remove_node)
-            #     node_i = 1
-            #     # print ("aux nodes", CZ_consecutive_path[1: -1])
-            #     for nnode in CZ_consecutive_path[1: -1]:
-            #         graph.nodes[nnode]['pos'] = ((pos_x2 - pos_x1) / node_size * node_i  + pos_x1, - (qubit2 - qubit1) / node_size * node_i - qubit1)
-            #         node_i += 1
-            #     node_index += 1
-            # else:    
-            # print("hello1")
+
             graph = add_undirected_edge(graph, node_q1, node_q2)
             CZ_consecutive_path.clear()
             CZ_consecutive_path.append(node_q1)
