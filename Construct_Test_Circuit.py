@@ -2,6 +2,7 @@ import pyzx as zx
 import random
 from JCZCircuit import *
 
+
 def generate_circuit(nqubit, depth):
     circuit = zx.generate.CNOT_HAD_PHASE_circuit(qubits=nqubit,depth=depth,clifford=False)
     # zx.draw(circuit)
@@ -38,4 +39,20 @@ def construct_qft(nqubit):
             phase = random.randint(0, 7)
             jcz_circuit.add_CRz(control, target, phase)
     jcz_circuit.add_H(nqubit - 1)
+    return jcz_circuit.gates, nqubit
+
+def construct_qaoa(nqubit, average_gate_num, sort=True, ver=True, draw=False):
+    jcz_circuit = JCZCircuit()
+    [jcz_circuit.add_J(qubit, random.randint(0, 7)) for qubit in range(nqubit)]
+    [jcz_circuit.add_H(qubit) for qubit in range(nqubit)]
+    
+    all_possible_gates = [(i,j) for i in range(nqubit) for j in range(i+1, nqubit)]
+    gates = list(set(random.choices(all_possible_gates, k= int(len(all_possible_gates)*average_gate_num))))
+    if sort:
+        gates.sort() 
+
+    for gate in gates:
+        jcz_circuit.add_CNOT(gate[1], gate[0])
+        jcz_circuit.add_Rz(gate[0], random.randint(0, 7))
+        jcz_circuit.add_CNOT(gate[1], gate[0])
     return jcz_circuit.gates, nqubit
