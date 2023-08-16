@@ -58,3 +58,10 @@ class JCZCircuit:
         self.add_CZ(qubit1, qubit2)
         self.add_H(qubit2)
     
+    def add_CRz(self, qubit1, qubit2, phase):
+        self.add_Rz(qubit1, phase)
+        self.add_Rz(qubit2, phase)
+        self.add_CNOT(qubit1,qubit2)
+        self.add_Rz(qubit2, phase)
+        self.add_CNOT(qubit1,qubit2) 
+    

@@ -295,7 +295,8 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
                         graph.remove_edge(alloca_node, node_dest)
                         if len(list(graph.neighbors(node_dest))) == 0:
                             graph.remove_node(node_dest)  
-                            alloca_incomplete_nodes.remove(node_dest) 
+                            if node_dest in alloca_incomplete_nodes:
+                                alloca_incomplete_nodes.remove(node_dest) 
                 
                 alloca_incomplete_nodes.remove(alloca_node)
                 alloca_pos = alloca_nodes[alloca_node]
