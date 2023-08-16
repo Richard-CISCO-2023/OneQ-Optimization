@@ -349,7 +349,14 @@ def compact_graph(fgraph):
         
         alloca_nodes.clear()
         alloca_nodes_index = 0
-        if len(set(alloca_nodes_cache.values())) == 1:
+        exit_flag = 1
+        for edge in graph.edges():
+            if edge[0] in alloca_nodes_cache.keys() and edge[1] in alloca_nodes_cache.keys() and alloca_nodes_cache[edge[0]] == alloca_nodes_cache[edge[1]]:
+                exit_flag = exit_flag
+            else:
+                exit_flag = 0
+                break
+        if exit_flag == 1:
             break
         copy_alloca_nodes_cache = alloca_nodes_cache.copy()
         for alloca_node in copy_alloca_nodes_cache.keys():
