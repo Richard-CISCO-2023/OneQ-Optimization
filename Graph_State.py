@@ -52,11 +52,11 @@ def turn_to_graph(gates_list, qubits):
                     graph.nodes[pre_node]['node_val'] = "In"
                 qubit = gate.qubit
                 graph.add_node(node_index, node_val = "Out", pos = (pos_x, - qubit))
-                if gate.phase % 2 == 0:
-                    add_undirected_edge(graph, pre_node, node_index)
-                else:
+                # if gate.phase % 2 == 0:
+                #     add_undirected_edge(graph, pre_node, node_index)
+                # else:
                     # print("non clifford")
-                    graph.add_edge(pre_node, node_index)
+                graph.add_edge(pre_node, node_index)
                 pre_nodes[qubit] = node_index
                 pos_x += 3
                 node_index += 1
