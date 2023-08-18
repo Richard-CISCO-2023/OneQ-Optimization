@@ -155,6 +155,16 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
                         alloca_incomplete_nodes.append(gnode)
 
             if len(gnodes) == 1:
+                if len(list(graph.neighbors(gnodes[0]))):
+                    alloca_node = gnodes[0]
+                    net.nodes[alloca_nodes[alloca_node]]['node_val'] = - GraphN - 1
+                    if alloca_node in cur_layer_nodes:
+                        cur_layer_nodes.remove(alloca_node)
+                    
+                    if alloca_node not in alloca_nodes_cache.keys():
+                        # print("hello")
+                        alloca_nodes_cache[alloca_node] = alloca_nodes[alloca_node]
+                    del alloca_nodes[alloca_node]
                 continue
             
             # diffusion from allocated incomplete nodes
@@ -359,12 +369,16 @@ def compact_graph(fgraph):
         if exit_flag == 1:
             break
         copy_alloca_nodes_cache = alloca_nodes_cache.copy()
+        index = 0
         for alloca_node in copy_alloca_nodes_cache.keys():
+            if index >= NetM * NetN // 2:
+                continue
             if alloca_nodes_cache[alloca_node] in alloca_nodes.values():
                 continue
             for gnode in graph.neighbors(alloca_node):
                 if graph.nodes[gnode]['layer'] <= cur_layer or cur_layer == -1:
                     alloca_nodes[alloca_node] = alloca_nodes_cache[alloca_node]
+                    index += 1
                     del alloca_nodes_cache[alloca_node]
                     break
         

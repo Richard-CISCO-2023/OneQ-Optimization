@@ -17,6 +17,7 @@ def show_graph(graph, added_nodes):
     plt.show()    
 
 def fusion_graph(graph, max_degree):
+    fusions = 0
     added_nodes =  []
     all_nodes = list(graph.nodes()).copy()
     nodes_size = len(all_nodes)
@@ -26,15 +27,18 @@ def fusion_graph(graph, max_degree):
         if nnode_degree > max_degree:
             for neigh_nnode in neigh_nnodes:
                 graph.remove_edge(nnode, neigh_nnode)
+                fusions -= 1
             for i in range(max_degree - 1):
                 neigh_nnode = neigh_nnodes[0]
                 graph.add_edge(nnode, neigh_nnode)
+                fusions += 1
                 neigh_nnodes.remove(neigh_nnode)
             pre_node = nodes_size
             added_nodes.append(nodes_size)
             graph.add_node(nodes_size)
             graph.nodes[nodes_size]['layer'] = graph.nodes[nnode]['layer']
             graph.add_edge(nnode, nodes_size)
+            fusions += 1
             nodes_size += 1
             # show_graph(graph, added_nodes)
             while len(neigh_nnodes):
@@ -45,10 +49,12 @@ def fusion_graph(graph, max_degree):
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
                         graph.add_edge(pre_node, neigh_nnode)
+                        fusions += 1
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
                     graph.nodes[nodes_size]['layer'] = graph.nodes[pre_node]['layer']
                     graph.add_edge(pre_node, nodes_size)
+                    fusions += 1
                     pre_node = nodes_size
                     nodes_size += 1
                 else:
@@ -57,7 +63,8 @@ def fusion_graph(graph, max_degree):
                             break
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
-                        graph.add_edge(pre_node, neigh_nnode)                    
+                        graph.add_edge(pre_node, neigh_nnode)    
+                        fusions += 1                
                 # show_graph(graph, added_nodes)
-        
+    # print("fusions:", fusions)    
     return graph, added_nodes
