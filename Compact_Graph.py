@@ -54,10 +54,10 @@ def save_net(pre_graph, net, alloca_pos, layer_index):
     pos = nx.get_node_attributes(net, 'pos')
 
     # show net
-    # plt.figure(figsize=(NetN, NetM))
-    # nx.draw(net, pos = pos, labels = labels, node_color = colors, node_size = 40, font_size = 40)
-    # # save image     
-    # plt.savefig("layers/layer" + str(layer_index) + ".png")
+    plt.figure(figsize=(NetN, NetM))
+    nx.draw(net, pos = pos, labels = labels, node_color = colors, node_size = 40, font_size = 40)
+    # save image     
+    plt.savefig("layers/layer" + str(layer_index) + ".png")
     # plt.show()
     return
 

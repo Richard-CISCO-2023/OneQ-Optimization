@@ -38,9 +38,9 @@ def validate(net_list, fgraph):
                 
                 if len(list(fgraph.neighbors(gnode))) != 0:
                     alloca_nodes_cache[gnode] = nnode
-                else:
-                    if gnode in alloca_nodes_cache.keys():
-                        del alloca_nodes_cache[gnode]
+                # else:
+                #     if gnode in alloca_nodes_cache.keys():
+                #         del alloca_nodes_cache[gnode]
         net_index += 1
 
     if len(list(fgraph.edges())) != 0:
