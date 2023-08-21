@@ -9,8 +9,8 @@ import random
 #                                                        #
 ##########################################################
 
-NetN = 40
-NetM = 40
+NetN = 50
+NetM = 50
 GraphN = 0
 SearchUpperBound = 4000
 
@@ -55,7 +55,7 @@ def save_net(pre_graph, net, alloca_pos, layer_index):
 
     # show net
     # plt.figure(figsize=(NetN, NetM))
-    nx.draw(net, pos = pos, labels = labels, node_color = colors, node_size = 40, font_size = 40)
+    # nx.draw(net, pos = pos, labels = labels, node_color = colors, node_size = 40, font_size = 40)
     # save image     
     # plt.savefig("layers/layer" + str(layer_index) + ".png")
     # plt.show()

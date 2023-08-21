@@ -13,7 +13,7 @@ def show_graph(graph, added_nodes):
             colors.append('green')
         else:
             colors.append('red')
-    nx.draw(graph, pos, node_size=10, node_color=colors, arrowsize=20)
+    # nx.draw(graph, pos, node_size=10, node_color=colors, arrowsize=20)
     plt.show()    
 
 def fusion_graph(graph, max_degree):
