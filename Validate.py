@@ -45,11 +45,11 @@ def validate(net_list, fgraph):
 
     if len(list(fgraph.edges())) != 0:
         for edge in fgraph.edges():
-            print(edge[0], edge[1], alloca_nodes_cache)
+            # print(edge[0], edge[1], alloca_nodes_cache)
             if alloca_nodes_cache[edge[0]] != alloca_nodes_cache[edge[1]]:
                 print("mapping incomplete error")
-            else:
-                print("validate success!") 
+                return fgraph
+        print("validate success!") 
         # pos = nx.spring_layout(fgraph)
         # labels = {node: str(node) for node in fgraph.nodes()}
         # nx.draw(fgraph, pos = pos, labels  = labels)
