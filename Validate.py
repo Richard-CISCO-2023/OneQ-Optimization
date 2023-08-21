@@ -36,8 +36,8 @@ def validate(net_list, fgraph):
                                 net.remove_edge(anode, neigh_node)
                     adj_list = new_adj_list
                 
-                if len(list(fgraph.neighbors(gnode))) != 0:
-                    alloca_nodes_cache[gnode] = nnode
+
+                alloca_nodes_cache[gnode] = nnode
                 # else:
                 #     if gnode in alloca_nodes_cache.keys():
                 #         del alloca_nodes_cache[gnode]
