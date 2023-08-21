@@ -9,8 +9,8 @@ import random
 #                                                        #
 ##########################################################
 
-NetN = 16
-NetM = 16
+NetN = 20
+NetM = 20
 GraphN = 0
 SearchUpperBound = 4000
 

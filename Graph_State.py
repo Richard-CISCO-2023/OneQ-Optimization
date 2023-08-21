@@ -33,13 +33,13 @@ def turn_to_graph(gates_list, qubits):
             if qubit in CZ_consecutive_path:
                 CZ_consecutive_path.clear()
             if pre_nodes[gate.qubit] == -1:
-                graph.add_node(node_index, node_val = "In", pos = (pos_x, - qubit))
-                graph.add_node(node_index + 1, node_val = "Out", pos  = (pos_x + 3, - qubit))
-                if gate.phase % 2 == 0:
-                    add_undirected_edge(graph, node_index, node_index + 1)
-                else:
-                    # print("non clifford")
-                    graph.add_edge(node_index, node_index + 1)
+                graph.add_node(node_index, node_val = "In", pos = (pos_x, - qubit), phase = gate.phase)
+                graph.add_node(node_index + 1, node_val = "Out", pos  = (pos_x + 3, - qubit), phase = -1)
+                # if gate.phase % 2 == 0:
+                #     add_undirected_edge(graph, node_index, node_index + 1)
+                # else:
+                # print("non clifford")
+                graph.add_edge(node_index, node_index + 1)
                 qubit = gate.qubit
                 pre_nodes[qubit] = node_index + 1
                 pos_x += 6
@@ -51,11 +51,12 @@ def turn_to_graph(gates_list, qubits):
                 else:
                     graph.nodes[pre_node]['node_val'] = "In"
                 qubit = gate.qubit
-                graph.add_node(node_index, node_val = "Out", pos = (pos_x, - qubit))
+                graph.add_node(node_index, node_val = "Out", pos = (pos_x, - qubit), phase = -1)
                 # if gate.phase % 2 == 0:
                 #     add_undirected_edge(graph, pre_node, node_index)
                 # else:
                     # print("non clifford")
+                graph.nodes[pre_node]['phase'] = gate.phase
                 graph.add_edge(pre_node, node_index)
                 pre_nodes[qubit] = node_index
                 pos_x += 3
@@ -64,7 +65,7 @@ def turn_to_graph(gates_list, qubits):
             qubit1 = gate.qubit1
             qubit2 = gate.qubit2
             if pre_nodes[qubit1] == -1:
-                graph.add_node(node_index, node_val = "IO", pos = (pos_x, - qubit1))
+                graph.add_node(node_index, node_val = "IO", pos = (pos_x, - qubit1), phase = -1)
                 pre_nodes[qubit1] = node_index
                 node_q1 = node_index
                 pos_x += 3
@@ -73,7 +74,7 @@ def turn_to_graph(gates_list, qubits):
                 node_q1 = pre_nodes[qubit1]
             
             if pre_nodes[qubit2] == -1:
-                graph.add_node(node_index, node_val = "IO", pos = (pos_x, - qubit2))
+                graph.add_node(node_index, node_val = "IO", pos = (pos_x, - qubit2), phase = -1)
                 pre_nodes[qubit2] = node_index
                 node_q2 = node_index
                 pos_x += 3
@@ -113,4 +114,4 @@ def generate_graph_state(gates_list, qubits):
     # node_pos = nx.get_node_attributes(graph, 'pos')
 
     # nx.draw(graph, pos = node_pos, node_color = colors, node_size = 10, labels = labels,font_size = 8)
-    return graph, input_nodes, colors
+    return graph, colors
