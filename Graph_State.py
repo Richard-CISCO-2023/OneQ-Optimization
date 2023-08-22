@@ -114,4 +114,4 @@ def generate_graph_state(gates_list, qubits):
     # node_pos = nx.get_node_attributes(graph, 'pos')
 
     # nx.draw(graph, pos = node_pos, node_color = colors, node_size = 10, labels = labels,font_size = 8)
-    return graph, colors
+    return graph, input_nodes, colors
