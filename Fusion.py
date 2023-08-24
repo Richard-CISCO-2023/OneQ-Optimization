@@ -22,6 +22,8 @@ def fusion_graph(graph, max_degree):
     all_nodes = list(graph.nodes()).copy()
     nodes_size = len(all_nodes)
     for nnode in all_nodes:
+        graph.nodes[nnode]['parent'] = nnode
+    for nnode in all_nodes:
         neigh_nnodes = list(graph.neighbors(nnode))
         nnode_degree = len(neigh_nnodes)
         if nnode_degree > max_degree:
@@ -36,7 +38,7 @@ def fusion_graph(graph, max_degree):
             pre_node = nodes_size
             added_nodes.append(nodes_size)
             graph.add_node(nodes_size)
-            graph.nodes[nodes_size]['layer'] = graph.nodes[nnode]['layer']
+            graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
             graph.add_edge(nnode, nodes_size)
             fusions += 1
             nodes_size += 1
@@ -52,7 +54,7 @@ def fusion_graph(graph, max_degree):
                         fusions += 1
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
-                    graph.nodes[nodes_size]['layer'] = graph.nodes[pre_node]['layer']
+                    graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                     graph.add_edge(pre_node, nodes_size)
                     fusions += 1
                     pre_node = nodes_size
