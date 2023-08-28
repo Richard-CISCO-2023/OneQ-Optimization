@@ -1,6 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-from Compact_Graph import *
+from Compact_Graph_Dynamic import *
 
 def validate(net_list, fgraph):
     print("begin to validate!")
