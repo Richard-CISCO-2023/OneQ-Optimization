@@ -421,8 +421,9 @@ def compact_graph_dynamic(fgraph, dgraph):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        save_net(pre_graph, net, alloca_values, layer_index)
+        # save_net(pre_graph, net, alloca_values, layer_index)
         layer_index += 1  
+        print(len(list(graph.nodes())))
 
     print(GraphN, "nodes")
     print(layer_index, "layers") 
