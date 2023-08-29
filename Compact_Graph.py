@@ -12,7 +12,7 @@ import random
 NetN = 25
 NetM = 25
 GraphN = 10000000
-SearchUpperBound = 4000
+SearchUpperBound = 40
 
 def create_net(alloca_nodes):
     net = nx.Graph()
@@ -88,7 +88,7 @@ class OneWaySearchNode:
     def __lt__(self, other):
         return self.f > other.f      
 
-def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
+def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree):
     # recycled alloca nodes
     recycled_nodes = {}
     # initial net
@@ -219,7 +219,22 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
                     if search_node.f >= 1:
                         search_node_net = search_node.net
                         search_node_path = search_node.path
-                        count_pos_untake_list = count_pos_untake(search_node_net, search_node_path[-1])
+                        if MaxDegree <= 4:
+                            count_pos_untake_list = count_pos_untake(search_node_net, search_node_path[-1])
+                        else:
+                            count_pos_untake_list = []
+
+                            if search_node_path[-1] - NetM >= 0 and search_node_net.nodes[search_node_path[-1] - NetM]['node_val'] < 0:
+                                count_pos_untake_list.append(search_node_path[-1] - NetM)
+
+                            if search_node_path[-1] + NetM <= NetN * NetM - 1 and search_node_net.nodes[search_node_path[-1] + NetM]['node_val'] < 0:
+                                count_pos_untake_list.append(search_node_path[-1] + NetM)  
+                            
+                            if search_node_path[-1] % NetM != 0 and search_node_net.nodes[search_node_path[-1] - 1]['node_val'] < 0:
+                                count_pos_untake_list.append(search_node_path[-1] - 1)
+
+                            if search_node_path[-1] % NetM != NetM - 1 and search_node_net.nodes[search_node_path[-1] + 1]['node_val'] < 0:
+                                count_pos_untake_list.append(search_node_path[-1] + 1)
                         for untake_pos in count_pos_untake_list:
                             up_pos = untake_pos - NetM
                             down_pos = untake_pos + NetM
@@ -276,8 +291,12 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
                     # create new net to use the shortest path function
                     node_set = [src_pos, dest_pos]
                     for nnode in net.nodes():
-                        if net.nodes[nnode]['node_val'] == - GraphN - 1 or net.nodes[nnode]['node_val'] == - alloca_node:
-                            node_set.append(nnode)
+                        if MaxDegree <= 4:
+                            if net.nodes[nnode]['node_val'] == - GraphN - 1 or net.nodes[nnode]['node_val'] == - alloca_node:
+                                node_set.append(nnode)
+                        else:
+                            if net.nodes[nnode]['node_val'] < 0:
+                                node_set.append(nnode)   
 
                     new_net = nx.Graph()
                     for nnode in node_set:
@@ -330,7 +349,7 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache):
 
 
 
-def compact_graph(fgraph):
+def compact_graph(fgraph, MaxDegree):
     # get fgraph information
     graph = fgraph.copy()
     # number of graph nodes
@@ -385,7 +404,7 @@ def compact_graph(fgraph):
         # reserve pre graph to show the mapping net
         pre_graph = graph.copy()
         # map and route current layer nodes 
-        net, graph = one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache)  
+        net, graph = one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree)  
 
         # get the alloca nodes set  
         for nnode in net.nodes():
