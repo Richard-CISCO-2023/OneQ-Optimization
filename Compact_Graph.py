@@ -9,9 +9,9 @@ import random
 #                                                        #
 ##########################################################
 
-NetN = 20
-NetM = 20
-GraphN = 0
+NetN = 25
+NetM = 25
+GraphN = 10000000
 SearchUpperBound = 4000
 
 def create_net(alloca_nodes):
@@ -394,8 +394,9 @@ def compact_graph(fgraph):
 
         net_list.append(net)
         # show the mapping net and save it
-        save_net(pre_graph, net, alloca_nodes.values(), layer_index)
+        # save_net(pre_graph, net, alloca_nodes.values(), layer_index)
         layer_index += 1  
+        print(len(list(graph.nodes())))
 
     print(GraphN, "nodes")
     print(layer_index, "layers") 

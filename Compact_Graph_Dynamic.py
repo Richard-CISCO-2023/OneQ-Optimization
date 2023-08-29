@@ -399,7 +399,6 @@ def compact_graph_dynamic(fgraph, dgraph):
 
         # map and route current layer nodes 
         net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache)  
-
         for gnode in graph.nodes():
             if len(list(graph.neighbors(gnode))) == 0:
                 graph.remove_node(gnode)
