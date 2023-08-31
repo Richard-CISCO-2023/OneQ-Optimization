@@ -214,7 +214,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
 
                 for gnode in neigh_graph_nodes_all:
                     if gnode not in list(alloca_nodes.keys()):
-                        if gnode in cur_layer_nodes:
+                        if gnode in cur_layer_nodes and graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0:
                             neigh_graph_nodes_unalloca.append(gnode)
                     else:
                         if gnode in cur_layer_nodes:
@@ -279,6 +279,9 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                                 continue
                             new_node_net = search_node_net.copy()
                             new_node_net.add_edge(search_node_path[-1], untake_pos)
+                            new_node_net[search_node_path[-1]][untake_pos]['con_qubits'] = {}
+                            new_node_net[search_node_path[-1]][untake_pos]['con_qubits'][search_node_path[-1]] = 0
+                            new_node_net[search_node_path[-1]][untake_pos]['con_qubits'][untake_pos] = 1
                             new_node_net.nodes[untake_pos]['node_val'] = - alloca_node
                             new_node_path = search_node_path.copy()
                             new_node_path.append(untake_pos)
@@ -297,6 +300,9 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         neigh_graph_nodes_unalloca.remove(unalloca_node)
                         net.nodes[untake_pos]['node_val'] = unalloca_node
                         net.add_edge(search_node.path[-1], untake_pos)
+                        net[search_node.path[-1]][untake_pos]['con_qubits'] = {}
+                        net[search_node.path[-1]][untake_pos]['con_qubits'][search_node.path[-1]] = 0
+                        net[search_node.path[-1]][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
 
@@ -316,7 +322,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     node_set = [src_pos, dest_pos]
                     for nnode in net.nodes():
                         # if MaxDegree <= 4:
-                        if net.nodes[nnode]['node_val'] == - GraphN - 1 or net.nodes[nnode]['node_val'] == - alloca_node:
+                        if net.nodes[nnode]['node_val'] == - GraphN - 1:
                             node_set.append(nnode)
                         # else:
                         #     if net.nodes[nnode]['node_val'] < 0:
@@ -344,6 +350,15 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                             if nnode != dest_pos:
                                 net.nodes[nnode]['node_val'] = - alloca_node
                             net.add_edge(pre_node, nnode)
+                            net[pre_node][nnode]['con_qubits'] = {}
+                            if pre_node == src_pos:
+                                net[pre_node][nnode]['con_qubits'][pre_node] = graph[alloca_node][node_dest]['con_qubits'][alloca_node]
+                            else:
+                                net[pre_node][nnode]['con_qubits'][pre_node] = 0
+                            if nnode == dest_pos:
+                                net[pre_node][nnode]['con_qubits'][nnode] = graph[alloca_node][node_dest]['con_qubits'][node_dest]
+                            else:
+                                net[pre_node][nnode]['con_qubits'][nnode] = 0
                             pre_node = nnode
                         graph.remove_edge(alloca_node, node_dest)
                         if len(list(graph.neighbors(node_dest))) == 0:
@@ -439,7 +454,7 @@ def compact_graph_dynamic(fgraph, dgraph, MaxDegree):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        save_net(pre_graph, net, alloca_values, layer_index)
+        # save_net(pre_graph, net, alloca_values, layer_index)
         layer_index += 1  
         # print(len(list(graph.nodes())))
 

@@ -26,13 +26,16 @@ def fusion_graph_dynamic(graph, max_degree):
     for nnode in all_nodes:
         neigh_nnodes = list(graph.neighbors(nnode))
         nnode_degree = len(neigh_nnodes)
-        if nnode_degree > max_degree:
+        if nnode_degree > max_degree - 1:
             for neigh_nnode in neigh_nnodes:
                 graph.remove_edge(nnode, neigh_nnode)
                 fusions -= 1
-            for i in range(max_degree - 1):
+            for i in range(max_degree - 2):
                 neigh_nnode = neigh_nnodes[0]
                 graph.add_edge(nnode, neigh_nnode)
+                graph[nnode][neigh_nnode]['con_qubits'] = {}
+                graph[nnode][neigh_nnode]['con_qubits'][nnode] = 0
+                graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode] = 0
                 fusions += 1
                 neigh_nnodes.remove(neigh_nnode)
             pre_node = nodes_size
@@ -40,6 +43,9 @@ def fusion_graph_dynamic(graph, max_degree):
             graph.add_node(nodes_size)
             graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
             graph.add_edge(nnode, nodes_size)
+            graph[nnode][nodes_size]['con_qubits'] = {}
+            graph[nnode][nodes_size]['con_qubits'][nnode] = 0
+            graph[nnode][nodes_size]['con_qubits'][nodes_size] = 1
             fusions += 1
             nodes_size += 1
             # show_graph(graph, added_nodes)
@@ -51,11 +57,17 @@ def fusion_graph_dynamic(graph, max_degree):
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
                         graph.add_edge(pre_node, neigh_nnode)
+                        graph[pre_node][neigh_nnode]['con_qubits'] = {}
+                        graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0
                         fusions += 1
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
                     graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                     graph.add_edge(pre_node, nodes_size)
+                    graph[pre_node][nodes_size]['con_qubits'] = {}
+                    graph[pre_node][nodes_size]['con_qubits'][pre_node] = 0
+                    graph[pre_node][nodes_size]['con_qubits'][nodes_size] = 1
                     fusions += 1
                     pre_node = nodes_size
                     nodes_size += 1
@@ -65,7 +77,10 @@ def fusion_graph_dynamic(graph, max_degree):
                             break
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
-                        graph.add_edge(pre_node, neigh_nnode)    
+                        graph.add_edge(pre_node, neigh_nnode)  
+                        graph[pre_node][neigh_nnode]['con_qubits'] = {}
+                        graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0  
                         fusions += 1                
                 # show_graph(graph, added_nodes)
     # print("fusions:", fusions)    
@@ -78,10 +93,10 @@ def fusion_graph(graph, max_degree):
     for nnode in all_nodes:
         neigh_nnodes = list(graph.neighbors(nnode))
         nnode_degree = len(neigh_nnodes)
-        if nnode_degree > max_degree:
+        if nnode_degree > max_degree - 1:
             for neigh_nnode in neigh_nnodes:
                 graph.remove_edge(nnode, neigh_nnode)
-            for i in range(max_degree - 1):
+            for i in range(max_degree - 2):
                 neigh_nnode = neigh_nnodes[0]
                 graph.add_edge(nnode, neigh_nnode)
                 neigh_nnodes.remove(neigh_nnode)
