@@ -99,12 +99,18 @@ def fusion_graph(graph, max_degree):
             for i in range(max_degree - 2):
                 neigh_nnode = neigh_nnodes[0]
                 graph.add_edge(nnode, neigh_nnode)
+                graph[nnode][neigh_nnode]['con_qubits'] = {}
+                graph[nnode][neigh_nnode]['con_qubits'][nnode] = 0
+                graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode] = 0
                 neigh_nnodes.remove(neigh_nnode)
             pre_node = nodes_size
             added_nodes.append(nodes_size)
             graph.add_node(nodes_size)
             graph.nodes[nodes_size]['layer'] = graph.nodes[nnode]['layer']
             graph.add_edge(nnode, nodes_size)
+            graph[nnode][nodes_size]['con_qubits'] = {}
+            graph[nnode][nodes_size]['con_qubits'][nnode] = 0
+            graph[nnode][nodes_size]['con_qubits'][nodes_size] = 1
             nodes_size += 1
             # show_graph(graph, added_nodes)
             while len(neigh_nnodes):
@@ -115,10 +121,16 @@ def fusion_graph(graph, max_degree):
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
                         graph.add_edge(pre_node, neigh_nnode)
+                        graph[pre_node][neigh_nnode]['con_qubits'] = {}
+                        graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
                     graph.nodes[nodes_size]['layer'] = graph.nodes[pre_node]['layer']
                     graph.add_edge(pre_node, nodes_size)
+                    graph[pre_node][nodes_size]['con_qubits'] = {}
+                    graph[pre_node][nodes_size]['con_qubits'][pre_node] = 0
+                    graph[pre_node][nodes_size]['con_qubits'][nodes_size] = 1                
                     pre_node = nodes_size
                     nodes_size += 1
                 else:
@@ -127,7 +139,10 @@ def fusion_graph(graph, max_degree):
                             break
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
-                        graph.add_edge(pre_node, neigh_nnode)                    
+                        graph.add_edge(pre_node, neigh_nnode)     
+                        graph[pre_node][neigh_nnode]['con_qubits'] = {}
+                        graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0                 
                 # show_graph(graph, added_nodes)
         
     return graph, added_nodes
