@@ -27,7 +27,9 @@ def fusion_graph_dynamic(graph, max_degree):
         neigh_nnodes = list(graph.neighbors(nnode))
         nnode_degree = len(neigh_nnodes)
         if nnode_degree > max_degree - 1:
+            neighbor_con_qubits = {}
             for neigh_nnode in neigh_nnodes:
+                neighbor_con_qubits[neigh_nnode] = graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode]
                 graph.remove_edge(nnode, neigh_nnode)
                 fusions -= 1
             for i in range(max_degree - 2):
@@ -35,7 +37,7 @@ def fusion_graph_dynamic(graph, max_degree):
                 graph.add_edge(nnode, neigh_nnode)
                 graph[nnode][neigh_nnode]['con_qubits'] = {}
                 graph[nnode][neigh_nnode]['con_qubits'][nnode] = 0
-                graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode] = 0
+                graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                 fusions += 1
                 neigh_nnodes.remove(neigh_nnode)
             pre_node = nodes_size
@@ -59,7 +61,7 @@ def fusion_graph_dynamic(graph, max_degree):
                         graph.add_edge(pre_node, neigh_nnode)
                         graph[pre_node][neigh_nnode]['con_qubits'] = {}
                         graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
-                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                         fusions += 1
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
@@ -80,7 +82,7 @@ def fusion_graph_dynamic(graph, max_degree):
                         graph.add_edge(pre_node, neigh_nnode)  
                         graph[pre_node][neigh_nnode]['con_qubits'] = {}
                         graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
-                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0  
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                         fusions += 1                
                 # show_graph(graph, added_nodes)
     # print("fusions:", fusions)    
@@ -94,7 +96,9 @@ def fusion_graph(graph, max_degree):
         neigh_nnodes = list(graph.neighbors(nnode))
         nnode_degree = len(neigh_nnodes)
         if nnode_degree > max_degree - 1:
+            neighbor_con_qubits = {}
             for neigh_nnode in neigh_nnodes:
+                neighbor_con_qubits[neigh_nnode] = graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode]
                 graph.remove_edge(nnode, neigh_nnode)
             for i in range(max_degree - 2):
                 neigh_nnode = neigh_nnodes[0]
@@ -123,7 +127,7 @@ def fusion_graph(graph, max_degree):
                         graph.add_edge(pre_node, neigh_nnode)
                         graph[pre_node][neigh_nnode]['con_qubits'] = {}
                         graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
-                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
                     graph.nodes[nodes_size]['layer'] = graph.nodes[pre_node]['layer']
@@ -142,7 +146,7 @@ def fusion_graph(graph, max_degree):
                         graph.add_edge(pre_node, neigh_nnode)     
                         graph[pre_node][neigh_nnode]['con_qubits'] = {}
                         graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
-                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = 0                 
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]               
                 # show_graph(graph, added_nodes)
         
     return graph, added_nodes

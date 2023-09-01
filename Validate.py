@@ -2,12 +2,14 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from Compact_Graph_Dynamic import *
 
-def validate(net_list, fgraph, MaxDegree):
+def validate(net_list_copy, fgraph, MaxDegree):
+    net_list = net_list_copy.copy()
     if MaxDegree <= 4:
         print("begin to validate!")
         alloca_nodes_cache = {}
         GraphN = len(list(fgraph.nodes()))
         net_index = 0
+        
         for net in net_list:
             
             for nnode in net.nodes():
@@ -61,3 +63,20 @@ def validate(net_list, fgraph, MaxDegree):
         print("begin to validate!")
         print("validate success!") 
     return fgraph
+
+def validate_con_qubits(net_list, MaxDegree):
+    for net in net_list:
+        for nnode in net.nodes():
+            if net.nodes[nnode]['node_val'] != -1000001:
+                qubits = [1]
+                for i in range(MaxDegree - 1):
+                    qubits.append(0)
+                neigh_nnodes = net.neighbors(nnode)
+                for neigh_nnode in neigh_nnodes:
+                    if net[nnode][neigh_nnode]['con_qubits'][nnode] in qubits:
+                        qubits.remove(net[nnode][neigh_nnode]['con_qubits'][nnode])
+                    else:
+                        print("validate error!")
+                        return
+    print("connect qubits validation success!")
+    return
