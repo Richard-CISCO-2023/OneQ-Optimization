@@ -322,8 +322,12 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     node_set = [src_pos, dest_pos]
                     for nnode in net.nodes():
                         # if MaxDegree <= 4:
-                        if net.nodes[nnode]['node_val'] == - GraphN - 1:
-                            node_set.append(nnode)
+                        if graph[alloca_node][node_dest]['con_qubits'][alloca_node] == 0:
+                            if net.nodes[nnode]['node_val'] == - GraphN - 1 or net.nodes[nnode]['node_val'] == - alloca_node:
+                                node_set.append(nnode)
+                        else:
+                            if net.nodes[nnode]['node_val'] == - GraphN - 1:
+                                node_set.append(nnode)                            
                         # else:
                         #     if net.nodes[nnode]['node_val'] < 0:
                         #         node_set.append(nnode)                            
@@ -454,7 +458,7 @@ def compact_graph_dynamic(fgraph, dgraph, MaxDegree):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        # save_net(pre_graph, net, alloca_values, layer_index)
+        save_net(pre_graph, net, alloca_values, layer_index)
         layer_index += 1  
         # print(len(list(graph.nodes())))
 
