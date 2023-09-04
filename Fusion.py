@@ -85,6 +85,73 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                             graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
                             graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                             fusions += 1       
+    else:
+        fusions = 0
+        added_nodes =  []
+        all_nodes = list(graph.nodes()).copy()
+        nodes_size = len(all_nodes)
+        for nnode in all_nodes:
+            graph.nodes[nnode]['parent'] = nnode
+        for nnode in all_nodes:
+            neigh_nnodes = list(graph.neighbors(nnode))
+            nnode_degree = len(neigh_nnodes)
+            if nnode_degree > 2:
+                neighbor_con_qubits = {}
+                for neigh_nnode in neigh_nnodes:
+                    neighbor_con_qubits[neigh_nnode] = graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode]
+                    graph.remove_edge(nnode, neigh_nnode)
+                    fusions -= 1
+                neigh_nnode = neigh_nnodes[0]
+                graph.add_edge(nnode, neigh_nnode)
+                graph[nnode][neigh_nnode]['con_qubits'] = {}
+                graph[nnode][neigh_nnode]['con_qubits'][nnode] = 0
+                graph[nnode][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
+                fusions += 1
+                neigh_nnodes.remove(neigh_nnode)
+                pre_node = nodes_size
+                added_nodes.append(nodes_size)
+                graph.add_node(nodes_size)
+                graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
+                graph.add_edge(nnode, nodes_size)
+                graph[nnode][nodes_size]['con_qubits'] = {}
+                graph[nnode][nodes_size]['con_qubits'][nnode] = 0
+                graph[nnode][nodes_size]['con_qubits'][nodes_size] = 1
+                fusions += 1
+                nodes_size += 1
+                # show_graph(graph, added_nodes)
+                while len(neigh_nnodes):
+                    if len(neigh_nnodes) > 2:
+                        if len(neigh_nnodes) == 0:
+                            break
+                        neigh_nnode = neigh_nnodes[0]
+                        neigh_nnodes.remove(neigh_nnode)
+                        graph.add_edge(pre_node, neigh_nnode)
+                        graph[pre_node][neigh_nnode]['con_qubits'] = {}
+                        graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
+                        graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
+                        fusions += 1
+                        added_nodes.append(nodes_size)
+                        graph.add_node(nodes_size)
+                        graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
+                        graph.add_edge(pre_node, nodes_size)
+                        graph[pre_node][nodes_size]['con_qubits'] = {}
+                        graph[pre_node][nodes_size]['con_qubits'][pre_node] = 0
+                        graph[pre_node][nodes_size]['con_qubits'][nodes_size] = 1
+                        fusions += 1
+                        pre_node = nodes_size
+                        nodes_size += 1
+                    else:
+                        for i in range(2):
+                            if len(neigh_nnodes) == 0:
+                                break
+                            neigh_nnode = neigh_nnodes[0]
+                            neigh_nnodes.remove(neigh_nnode)
+                            graph.add_edge(pre_node, neigh_nnode)  
+                            graph[pre_node][neigh_nnode]['con_qubits'] = {}
+                            graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
+                            graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
+                            fusions += 1       
+
                 # show_graph(graph, added_nodes)
     # print("fusions:", fusions)    
     return graph, added_nodes
