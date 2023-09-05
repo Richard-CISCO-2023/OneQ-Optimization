@@ -92,6 +92,20 @@ class OneWaySearchNode:
     def __lt__(self, other):
         return self.f > other.f      
 
+def find_pre_pos(net, path, pos, MaxDegree):
+    if pos - NetM >= 0 and pos - NetM in path and len(list(net.neighbors(pos - NetM))) <= MaxDegree - 1:
+        return pos - NetM
+
+    if pos + NetM <= NetN * NetM - 1 and pos + NetM in path and len(list(net.neighbors(pos + NetM))) <= MaxDegree - 1:
+        return pos + NetM 
+    
+    if pos % NetM != 0 and pos - 1 in path and len(list(net.neighbors(pos - 1))) <= MaxDegree - 1:
+        return pos - 1
+
+    if pos % NetM != NetM - 1 and pos + 1 in path and len(list(net.neighbors(pos + 1))) <= MaxDegree - 1:
+        return pos + 1  
+    return -1
+
 def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree):
     # recycled alloca nodes
     recycled_nodes = {}
@@ -285,10 +299,14 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree)
                         unalloca_node = neigh_graph_nodes_unalloca[0]
                         neigh_graph_nodes_unalloca.remove(unalloca_node)
                         net.nodes[untake_pos]['node_val'] = unalloca_node
-                        net.add_edge(search_node.path[-1], untake_pos)
-                        net[search_node.path[-1]][untake_pos]['con_qubits'] = {}
-                        net[search_node.path[-1]][untake_pos]['con_qubits'][search_node.path[-1]] = graph[alloca_node][unalloca_node]['con_qubits'][alloca_node]
-                        net[search_node.path[-1]][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
+                        pre_pos = find_pre_pos(net, search_node.path, untake_pos, MaxDegree)
+                        if pre_pos == -1:
+                            neigh_graph_nodes_unalloca.append(unalloca_node)
+                            continue
+                        net.add_edge(pre_pos, untake_pos)
+                        net[pre_pos][untake_pos]['con_qubits'] = {}
+                        net[pre_pos][untake_pos]['con_qubits'][pre_pos] = graph[alloca_node][unalloca_node]['con_qubits'][alloca_node]
+                        net[pre_pos][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
 
