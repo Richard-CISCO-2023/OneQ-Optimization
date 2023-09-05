@@ -83,7 +83,11 @@ class OneWaySearchNode:
     def __init__(self, net, path):
         self.net = net.copy()
         self.path = path.copy()
-        self.f = len(count_pos_untake(net, path[-1]))
+        self.free_space = set()
+        for pnode in path:
+            for nnode in count_pos_untake(net, pnode):
+                self.free_space.add(nnode)
+        self.f = len(self.free_space)
 
     def __lt__(self, other):
         return self.f > other.f      
@@ -188,11 +192,15 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree)
                 neigh_graph_nodes_all = list(graph.neighbors(alloca_node))
                 neigh_graph_nodes_alloca = []
                 neigh_graph_nodes_unalloca = []
+                neigh_graph_nodes_unalloca_with_one = []
 
                 for gnode in neigh_graph_nodes_all:
                     if gnode not in list(alloca_nodes.keys()):
-                        if gnode in cur_layer_nodes and  graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0:
-                            neigh_graph_nodes_unalloca.append(gnode)
+                        if gnode in cur_layer_nodes:
+                            if graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0:
+                                neigh_graph_nodes_unalloca.append(gnode)
+                            else:
+                                neigh_graph_nodes_unalloca_with_one.append(gnode)
                     else:
                         neigh_graph_nodes_alloca.append(gnode)                
 
@@ -266,8 +274,10 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree)
                 
                 # allocate node as much as possible
                 if search_node.f:
+                    if len(search_node.path) == 1:
+                        neigh_graph_nodes_unalloca = neigh_graph_nodes_unalloca + neigh_graph_nodes_unalloca_with_one
                     net = search_node.net
-                    count_pos_untake_list = count_pos_untake(net, search_node.path[-1])
+                    count_pos_untake_list = list(search_node.free_space)
                     # allocate the nodes
                     while len(count_pos_untake_list) and len(neigh_graph_nodes_unalloca):
                         untake_pos = count_pos_untake_list[0]
@@ -277,7 +287,7 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree)
                         net.nodes[untake_pos]['node_val'] = unalloca_node
                         net.add_edge(search_node.path[-1], untake_pos)
                         net[search_node.path[-1]][untake_pos]['con_qubits'] = {}
-                        net[search_node.path[-1]][untake_pos]['con_qubits'][search_node.path[-1]] = 0
+                        net[search_node.path[-1]][untake_pos]['con_qubits'][search_node.path[-1]] = graph[alloca_node][unalloca_node]['con_qubits'][alloca_node]
                         net[search_node.path[-1]][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
