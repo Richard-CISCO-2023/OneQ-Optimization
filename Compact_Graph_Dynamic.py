@@ -351,15 +351,22 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     for nnode in net.nodes():
                         # if MaxDegree <= 4:
                         # if graph[alloca_node][node_dest]['con_qubits'][alloca_node] == 0:
-                        if net.nodes[nnode]['node_val'] == - GraphN - 1:
-                            node_set.append(nnode)
+
+                        #     elif net.nodes[nnode]['node_val'] == - alloca_node and len(list(net.neighbors(nnode))) <= MaxDegree - 1:
+                        #         node_set.append(nnode)
+                        # else:
+                        #     if net.nodes[nnode]['node_val'] == - GraphN - 1:
+                        #         node_set.append(nnode)                            
+                        #     elif net.nodes[nnode]['node_val'] == - node_dest and len(list(net.neighbors(nnode))) <= MaxDegree - 1:
+                        #         node_set.append(nnode)
                         # else:
                         #     if net.nodes[nnode]['node_val'] == - GraphN - 1:
                         #         node_set.append(nnode)                            
                         # else:
                         #     if net.nodes[nnode]['node_val'] < 0:
                         #         node_set.append(nnode)                            
-
+                        if net.nodes[nnode]['node_val'] == - GraphN - 1:
+                            node_set.append(nnode)
                     new_net = nx.Graph()
                     for nnode in node_set:
                         new_net.add_node(nnode)
@@ -486,7 +493,7 @@ def compact_graph_dynamic(fgraph, dgraph, MaxDegree):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        save_net(pre_graph, net, alloca_values, layer_index)
+        # save_net(pre_graph, net, alloca_values, layer_index)
         layer_index += 1  
         # print(len(list(graph.nodes())))
 
