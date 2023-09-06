@@ -81,14 +81,31 @@ def count_pos_untake(net, pos):
 
 # used for allocate the unallocated nodes, the path is one way like
 class OneWaySearchNode:
-    def __init__(self, net, path, auxiliary_nodes_used_times):
+    def __init__(self, net, path):
         self.net = net.copy()
         self.path = path.copy()
-        self.f = len(count_pos_untake(net, path[-1]))
-        self.auxiliary_nodes_used_times = auxiliary_nodes_used_times.copy()
-
+        self.f = 0
+        self.free_space = set()
+        for pnode in path:
+            for nnode in count_pos_untake(net, pnode):
+                self.free_space.add(nnode)
+        self.f = len(self.free_space)
     def __lt__(self, other):
         return self.f > other.f      
+
+def find_pre_pos(net, path, pos, MaxDegree):
+    if pos - NetM >= 0 and pos - NetM in path and len(list(net.neighbors(pos - NetM))) <= MaxDegree - 1:
+        return pos - NetM
+
+    if pos + NetM <= NetN * NetM - 1 and pos + NetM in path and len(list(net.neighbors(pos + NetM))) <= MaxDegree - 1:
+        return pos + NetM 
+    
+    if pos % NetM != 0 and pos - 1 in path and len(list(net.neighbors(pos - 1))) <= MaxDegree - 1:
+        return pos - 1
+
+    if pos % NetM != NetM - 1 and pos + 1 in path and len(list(net.neighbors(pos + 1))) <= MaxDegree - 1:
+        return pos + 1  
+    return -1
 
 def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
     auxiliary_nodes_used_times = {}
@@ -214,11 +231,15 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                 neigh_graph_nodes_all = list(graph.neighbors(alloca_node))
                 neigh_graph_nodes_alloca = []
                 neigh_graph_nodes_unalloca = []
+                neigh_graph_nodes_unalloca_with_one = []
 
                 for gnode in neigh_graph_nodes_all:
                     if gnode not in list(alloca_nodes.keys()):
-                        if gnode in cur_layer_nodes and graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0:
-                            neigh_graph_nodes_unalloca.append(gnode)
+                        if gnode in cur_layer_nodes:
+                            if graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0:
+                                neigh_graph_nodes_unalloca.append(gnode)
+                            else:
+                                neigh_graph_nodes_unalloca_with_one.append(gnode)
                     else:
                         if gnode in cur_layer_nodes:
                             neigh_graph_nodes_alloca.append(gnode)                
@@ -227,7 +248,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                 neigh_graph_nodes_unalloca_size = len(neigh_graph_nodes_unalloca)
 
                 search_set = []
-                search_node = OneWaySearchNode(net, [alloca_nodes[alloca_node]], auxiliary_nodes_used_times)
+                search_node = OneWaySearchNode(net, [alloca_nodes[alloca_node]])
                 heapq.heappush(search_set, search_node)
                 search_index = 0
                 while len(search_set):
@@ -246,20 +267,8 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     if search_node.f >= 1:
                         search_node_net = search_node.net
                         search_node_path = search_node.path
-                        search_node_auxiliary_nodes_used_times = search_node.auxiliary_nodes_used_times
                         # if MaxDegree <= 4:
                         count_pos_untake_list = count_pos_untake(search_node_net, search_node_path[-1])
-                        if search_node_path[-1] - NetM >= 0 and net.nodes[search_node_path[-1] - NetM]['node_val'] < 0 and (search_node_path[-1] - NetM) not in count_pos_untake_list and search_node_auxiliary_nodes_used_times[search_node_path[-1] - NetM] > 0 and (search_node_path[-1] - NetM) not in search_node_path:
-                            count_pos_untake_list.append(search_node_path[-1] - NetM)
-
-                        if search_node_path[-1] + NetM <= NetN * NetM - 1 and net.nodes[search_node_path[-1] + NetM]['node_val'] < 0 and (search_node_path[-1] + NetM) not in count_pos_untake_list and search_node_auxiliary_nodes_used_times[search_node_path[-1] + NetM] > 0 and (search_node_path[-1] + NetM) not in search_node_path:
-                            count_pos_untake_list.append(search_node_path[-1] + NetM)  
-                        
-                        if search_node_path[-1] % NetM != 0 and net.nodes[search_node_path[-1] - 1]['node_val'] < 0 and (search_node_path[-1] - 1) not in count_pos_untake_list and search_node_auxiliary_nodes_used_times[search_node_path[-1] - 1] > 0 and (search_node_path[-1] - 1) not in search_node_path:
-                            count_pos_untake_list.append(search_node_path[-1] - 1)
-
-                        if search_node_path[-1] % NetM != NetM - 1 and net.nodes[search_node_path[-1] + 1]['node_val'] < 0 and (search_node_path[-1] + 1) not in count_pos_untake_list and search_node_auxiliary_nodes_used_times[search_node_path[-1] + 1] > 0 and (search_node_path[-1] + 1) not in search_node_path:
-                            count_pos_untake_list.append(search_node_path[-1] + 1)
                         # else:
                         #     count_pos_untake_list = []
 
@@ -281,16 +290,16 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                             right_pos = untake_pos + 1
 
                             # check whether the path will lead to blockness
-                            if up_pos >= 0 and (search_node_net.nodes[up_pos]['node_val'] > 0 or (search_node_net.nodes[up_pos]['node_val'] != - GraphN - 1 and search_node_auxiliary_nodes_used_times[up_pos] > 0)) and len(count_pos_untake(search_node_net, up_pos))  <= 1 and up_pos in alloca_incomplete_nodes:
+                            if up_pos >= 0 and search_node_net.nodes[up_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, up_pos))  <= 1 and up_pos in alloca_incomplete_nodes:
                                 continue
 
-                            if down_pos <= NetM * NetN - 1 and (search_node_net.nodes[down_pos]['node_val'] > 0 or (search_node_net.nodes[down_pos]['node_val'] != - GraphN - 1 and search_node_auxiliary_nodes_used_times[down_pos] > 0)) and len(count_pos_untake(search_node_net, down_pos)) <= 2 and down_pos in alloca_incomplete_nodes:
+                            if down_pos <= NetM * NetN - 1 and search_node_net.nodes[down_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, down_pos)) <= 2 and down_pos in alloca_incomplete_nodes:
                                 continue
 
-                            if left_pos % NetM != NetM - 1 and (search_node_net.nodes[left_pos]['node_val'] > 0 or (search_node_net.nodes[left_pos]['node_val'] != - GraphN - 1 and search_node_auxiliary_nodes_used_times[left_pos] > 0)) and len(count_pos_untake(search_node_net, left_pos)) <= 2 and left_pos in alloca_incomplete_nodes:
+                            if left_pos % NetM != NetM - 1 and search_node_net.nodes[left_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, left_pos)) <= 2 and left_pos in alloca_incomplete_nodes:
                                 continue
 
-                            if right_pos % NetM != 0 and (search_node_net.nodes[right_pos]['node_val'] > 0 or (search_node_net.nodes[right_pos]['node_val'] != - GraphN - 1 and search_node_auxiliary_nodes_used_times[right_pos] > 0)) and len(count_pos_untake(search_node_net, right_pos)) <= 2 and right_pos in alloca_incomplete_nodes:
+                            if right_pos % NetM != 0 and search_node_net.nodes[right_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, right_pos)) <= 2 and right_pos in alloca_incomplete_nodes:
                                 continue
                             new_node_net = search_node_net.copy()
                             new_node_net.add_edge(search_node_path[-1], untake_pos)
@@ -300,18 +309,15 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                             new_node_net.nodes[untake_pos]['node_val'] = - alloca_node
                             new_node_path = search_node_path.copy()
                             new_node_path.append(untake_pos)
-                            if untake_pos in search_node_auxiliary_nodes_used_times.keys():
-                                search_node_auxiliary_nodes_used_times[untake_pos] -= 1
-                            else:
-                                search_node_auxiliary_nodes_used_times[untake_pos] = max_used_times
-                            new_node = OneWaySearchNode(new_node_net, new_node_path, search_node_auxiliary_nodes_used_times)
+                            new_node = OneWaySearchNode(new_node_net, new_node_path)
                             heapq.heappush(search_set, new_node)
                 
                 # allocate node as much as possible
                 if search_node.f:
+                    if len(search_node.path) == 1:
+                        neigh_graph_nodes_unalloca = neigh_graph_nodes_unalloca + neigh_graph_nodes_unalloca_with_one
                     net = search_node.net
-                    count_pos_untake_list = count_pos_untake(net, search_node.path[-1])
-                    auxiliary_nodes_used_times = search_node.auxiliary_nodes_used_times
+                    count_pos_untake_list = list(search_node.free_space)
                     # allocate the nodes
                     while len(count_pos_untake_list) and len(neigh_graph_nodes_unalloca):
                         untake_pos = count_pos_untake_list[0]
@@ -319,10 +325,19 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         unalloca_node = neigh_graph_nodes_unalloca[0]
                         neigh_graph_nodes_unalloca.remove(unalloca_node)
                         net.nodes[untake_pos]['node_val'] = unalloca_node
-                        net.add_edge(search_node.path[-1], untake_pos)
-                        net[search_node.path[-1]][untake_pos]['con_qubits'] = {}
-                        net[search_node.path[-1]][untake_pos]['con_qubits'][search_node.path[-1]] = 0
-                        net[search_node.path[-1]][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
+                        pre_pos = find_pre_pos(net, search_node.path, untake_pos, MaxDegree)
+                        if pre_pos == -1:
+                            neigh_graph_nodes_unalloca.append(unalloca_node)
+                            continue
+                        for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
+                            if pnode in auxiliary_nodes_used_times.keys():
+                                auxiliary_nodes_used_times[pnode] -= 1
+                            else:
+                                auxiliary_nodes_used_times[pnode] = max_used_times - 1
+                        net.add_edge(pre_pos, untake_pos)
+                        net[pre_pos][untake_pos]['con_qubits'] = {}
+                        net[pre_pos][untake_pos]['con_qubits'][pre_pos] = graph[alloca_node][unalloca_node]['con_qubits'][alloca_node]
+                        net[pre_pos][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
 
@@ -342,12 +357,23 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     node_set = [src_pos, dest_pos]
                     for nnode in net.nodes():
                         # if MaxDegree <= 4:
-                        if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
-                            node_set.append(nnode)                          
+                        # if graph[alloca_node][node_dest]['con_qubits'][alloca_node] == 0:
+
+                        #     elif net.nodes[nnode]['node_val'] == - alloca_node and len(list(net.neighbors(nnode))) <= MaxDegree - 1:
+                        #         node_set.append(nnode)
+                        # else:
+                        #     if net.nodes[nnode]['node_val'] == - GraphN - 1:
+                        #         node_set.append(nnode)                            
+                        #     elif net.nodes[nnode]['node_val'] == - node_dest and len(list(net.neighbors(nnode))) <= MaxDegree - 1:
+                        #         node_set.append(nnode)
+                        # else:
+                        #     if net.nodes[nnode]['node_val'] == - GraphN - 1:
+                        #         node_set.append(nnode)                            
                         # else:
                         #     if net.nodes[nnode]['node_val'] < 0:
                         #         node_set.append(nnode)                            
-
+                        if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
+                            node_set.append(nnode)
                     new_net = nx.Graph()
                     for nnode in node_set:
                         new_net.add_node(nnode)
@@ -369,8 +395,8 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         for nnode in path_nodes:
                             if nnode in auxiliary_nodes_used_times.keys():
                                 auxiliary_nodes_used_times[nnode] -= 1
-                            elif net.nodes[nnode]['node_val'] < 0:
-                                auxiliary_nodes_used_times[nnode] = max_used_times
+                            elif net.nodes[nnode]['node_val'] == - GraphN - 1:
+                                auxiliary_nodes_used_times[nnode] = max_used_times - 1
                             if nnode != dest_pos:
                                 net.nodes[nnode]['node_val'] = - alloca_node
                             net.add_edge(pre_node, nnode)
