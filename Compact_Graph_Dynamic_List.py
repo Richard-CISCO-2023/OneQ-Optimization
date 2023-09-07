@@ -453,7 +453,7 @@ def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
     
     alloca_nodes_cache = {}
     alloca_nodes = {}
-    
+    pre_graph_nodes = len(list(graph.nodes()))
     # map and route
     while len(list(graph.nodes())):
         exit_flag = 1
@@ -473,13 +473,24 @@ def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
         alloca_nodes.clear()
         index = 0
         keys = list(alloca_nodes_cache.keys())
-        for key in keys:
-            if index >= NetM * NetN // 2:
+        while len(keys):
+            if index >= 2 * NetM * NetN // 3:
                 break
+            key = keys[0]
+            keys.remove(key)
             if alloca_nodes_cache[key] not in alloca_nodes.values():
                 alloca_nodes[key] = alloca_nodes_cache[key]
                 del alloca_nodes_cache[key]
                 index += 1
+            else:
+                continue
+            
+            for kkey in keys:
+                if graph.has_edge(key, kkey) and alloca_nodes_cache[kkey] not in alloca_nodes.values():
+                    alloca_nodes[kkey] = alloca_nodes_cache[kkey]
+                    del alloca_nodes_cache[kkey]  
+                    keys.remove(kkey)
+                    index += 1                  
 
         # map and route current layer nodes 
         net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree)  
@@ -504,9 +515,19 @@ def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        save_net(pre_graph, net, alloca_values, layer_index)
+        # save_net(pre_graph, net, alloca_values, layer_index)
+
         layer_index += 1  
-        # print(len(list(graph.nodes())))
+        print(len(list(graph.nodes())))
+        if len(list(graph.nodes())) == pre_graph_nodes:
+            for nnode in graph.nodes():
+                if nnode in alloca_nodes_cache.keys():
+                    print(nnode, alloca_nodes_cache[nnode])
+            print(graph.edges())
+            nx.draw(dgraph)
+            nx.draw(graph)
+            break
+        pre_graph_nodes = len(list(graph.nodes()))
 
     print(GraphN, "nodes")
     print(layer_index, "layers") 

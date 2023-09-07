@@ -462,13 +462,24 @@ def compact_graph_dynamic(fgraph, dgraph, MaxDegree):
         alloca_nodes.clear()
         index = 0
         keys = list(alloca_nodes_cache.keys())
-        for key in keys:
-            if index >= NetM * NetN // 2:
+        while len(keys):
+            if index >= 2 * NetM * NetN // 3:
                 break
+            key = keys[0]
+            keys.remove(key)
             if alloca_nodes_cache[key] not in alloca_nodes.values():
                 alloca_nodes[key] = alloca_nodes_cache[key]
                 del alloca_nodes_cache[key]
                 index += 1
+            else:
+                continue
+            
+            for kkey in keys:
+                if graph.has_edge(key, kkey) and alloca_nodes_cache[kkey] not in alloca_nodes.values():
+                    alloca_nodes[kkey] = alloca_nodes_cache[kkey]
+                    del alloca_nodes_cache[kkey]  
+                    keys.remove(kkey)
+                    index += 1   
 
         # map and route current layer nodes 
         net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree)  
