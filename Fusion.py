@@ -171,7 +171,8 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                 extend_flag = 0
                 neigh_head_nodes = graph.neighbors(path[0])
                 for nnode in neigh_head_nodes:
-                    if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[0]]['parent']:
+                    if nnode not in path and nnode in degree_two_nodes:
+                    # if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[0]]['parent']:
                         extend_flag = 1
                         degree_two_nodes.remove(nnode)
                         path = [nnode] + path
@@ -179,7 +180,8 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                 
                 neigh_tail_nodes = graph.neighbors(path[-1])
                 for nnode in neigh_tail_nodes:
-                    if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[-1]]['parent']:
+                    if nnode not in path and nnode in degree_two_nodes:
+                    # if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[-1]]['parent']:
                         extend_flag = 1
                         degree_two_nodes.remove(nnode)
                         path.append(nnode)
@@ -202,7 +204,8 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
             head_con = graph[head_node][path[0]]['con_qubits'][head_node]
             tail_con = graph[path[-1]][tail_node]['con_qubits'][tail_node]    
             if len(path) <= max_degree - 3:
-                if (graph[head_node][path[0]]['con_qubits'][head_node] == 0 or graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1) and graph.nodes[head_node]['parent'] == parent:
+                if (graph[head_node][path[0]]['con_qubits'][head_node] == 0 or graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1):
+                # if (graph[head_node][path[0]]['con_qubits'][head_node] == 0 or graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1) and graph.nodes[head_node]['parent'] == parent:
                     pre_node = head_node
                     for pnode in path:
                         graph.remove_edge(pre_node, pnode)
@@ -216,7 +219,8 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                     graph[head_node][tail_node]['con_qubits'][head_node] = head_con
                     graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
                     continue
-                elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1) and graph.nodes[tail_node]['parent'] == parent:
+                elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1):
+                # elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1) and graph.nodes[tail_node]['parent'] == parent:
                     pre_node = head_node
                     for pnode in path:
                         graph.remove_edge(pre_node, pnode)
