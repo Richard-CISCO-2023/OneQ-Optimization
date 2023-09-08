@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import heapq
 import random
+import math
 
 ##########################################################
 #                                                        #
@@ -109,7 +110,10 @@ def find_pre_pos(net, path, pos, MaxDegree):
 
 def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
     auxiliary_nodes_used_times = {}
-    max_used_times = (MaxDegree + 1) // 3
+    auxiliary_nodes_used_tri = []
+    max_used_times_tri = math.ceil(2 - MaxDegree % 3) 
+    max_used_times = (MaxDegree + 1) // 3 - max_used_times_tri
+    print(max_used_times_tri)
     initial_alloca_nodes = alloca_nodes.copy()
     # initial net
     net = create_net(alloca_nodes)
@@ -319,6 +323,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     net = search_node.net
                     count_pos_untake_list = list(search_node.free_space)
                     # allocate the nodes
+                    pre_pos_list = []
                     while len(count_pos_untake_list) and len(neigh_graph_nodes_unalloca):
                         untake_pos = count_pos_untake_list[0]
                         count_pos_untake_list.remove(untake_pos)
@@ -329,11 +334,39 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         if pre_pos == -1:
                             neigh_graph_nodes_unalloca.append(unalloca_node)
                             continue
-                        for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
-                            if pnode in auxiliary_nodes_used_times.keys():
-                                auxiliary_nodes_used_times[pnode] -= 1
+                        if max_used_times_tri == 1:
+                            if pre_pos in pre_pos_list:
+                                auxiliary_nodes_used_tri.append(pre_pos)
+                                auxiliary_nodes_used_times[pre_pos] += 1
+                            elif search_node.path.index(pre_pos) != len(search_node.path) - 1:
+                                auxiliary_nodes_used_tri.append(pre_pos)
+                                if pre_pos not in auxiliary_nodes_used_times.keys():
+                                    auxiliary_nodes_used_times[pre_pos] = max_used_times
+                                else:
+                                    auxiliary_nodes_used_times[pre_pos] += 1
                             else:
-                                auxiliary_nodes_used_times[pnode] = max_used_times - 1
+                                if pre_pos in auxiliary_nodes_used_times.keys():
+                                    auxiliary_nodes_used_times[pre_pos] -= 1
+                                else:
+                                    auxiliary_nodes_used_times[pre_pos] = max_used_times - 1     
+                        else:
+                            if pre_pos in auxiliary_nodes_used_times.keys():
+                                auxiliary_nodes_used_times[pre_pos] -= 1
+                            else:
+                                auxiliary_nodes_used_times[pre_pos] = max_used_times - 1     
+                        pre_pos_list.append(pre_pos)
+                        for pnode in search_node.path[1: search_node.path.index(pre_pos)]:
+                            if max_used_times_tri == 1:
+                                if pnode not in auxiliary_nodes_used_tri:
+                                    if pnode in auxiliary_nodes_used_times.keys():
+                                        auxiliary_nodes_used_times[pnode] -= 1
+                                    else:
+                                        auxiliary_nodes_used_times[pnode] = max_used_times - 1
+                            else:
+                                if pnode in auxiliary_nodes_used_times.keys():
+                                    auxiliary_nodes_used_times[pnode] -= 1
+                                else:
+                                    auxiliary_nodes_used_times[pnode] = max_used_times - 1  
                         net.add_edge(pre_pos, untake_pos)
                         net[pre_pos][untake_pos]['con_qubits'] = {}
                         net[pre_pos][untake_pos]['con_qubits'][pre_pos] = graph[alloca_node][unalloca_node]['con_qubits'][alloca_node]
@@ -372,8 +405,12 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         # else:
                         #     if net.nodes[nnode]['node_val'] < 0:
                         #         node_set.append(nnode)                            
-                        if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
-                            node_set.append(nnode)
+                        if max_used_times_tri == 0:
+                            if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
+                                node_set.append(nnode)
+                        else:
+                            if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0) or nnode not in auxiliary_nodes_used_tri:
+                                node_set.append(nnode)                            
                     new_net = nx.Graph()
                     for nnode in node_set:
                         new_net.add_node(nnode)
@@ -394,7 +431,10 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         pre_node = src_pos
                         for nnode in path_nodes:
                             if nnode in auxiliary_nodes_used_times.keys():
-                                auxiliary_nodes_used_times[nnode] -= 1
+                                if auxiliary_nodes_used_times != 0:
+                                    auxiliary_nodes_used_times[nnode] -= 1
+                                else:
+                                    auxiliary_nodes_used_tri.append(nnode)
                             elif net.nodes[nnode]['node_val'] == - GraphN - 1:
                                 auxiliary_nodes_used_times[nnode] = max_used_times - 1
                             if nnode != dest_pos:
@@ -515,7 +555,7 @@ def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        # save_net(pre_graph, net, alloca_values, layer_index)
+        save_net(pre_graph, net, alloca_values, layer_index)
 
         layer_index += 1  
         print(len(list(graph.nodes())))
