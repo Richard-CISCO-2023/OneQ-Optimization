@@ -84,3 +84,32 @@ def validate_con_qubits(net_list, MaxDegree):
                         return
     print("connect qubits validation success!")
     return
+
+def validate_con_qubits_list(net_list, MaxDegree):
+    net_index = 0
+    for net in net_list:
+        net_index += 1
+        for nnode in net.nodes():
+            if net.nodes[nnode]['node_val'] != -1000001:
+                qubits = []
+                for i in range(MaxDegree):
+                    qubits.append(i)
+                #print(qubits)
+                neigh_nnodes = net.neighbors(nnode)
+                for neigh_nnode in neigh_nnodes:
+                    for con_qubit in net[nnode][neigh_nnode]['con_qubits']:
+                        # print("loops")
+                        if con_qubit[nnode] in qubits:
+                            qubits.remove(con_qubit[nnode])
+                            #print(qubits)
+                        else:
+                            print("validate error!")
+                            if net.nodes[nnode]['node_val'] < 0:
+                                print("auxiliary node")
+                            else:
+                                print("actual node")
+                            print(con_qubit[nnode])
+                            print(net_index)
+                            return
+    print("connect qubits validation success!")
+    return   

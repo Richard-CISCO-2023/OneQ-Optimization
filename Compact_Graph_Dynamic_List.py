@@ -111,9 +111,9 @@ def find_pre_pos(net, path, pos, MaxDegree):
 def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
     auxiliary_nodes_used_times = {}
     auxiliary_nodes_used_tri = []
-    max_used_times_tri = math.ceil(2 - MaxDegree % 3) 
+    max_used_times_tri = math.ceil((2 - MaxDegree % 3) / 2) 
     max_used_times = (MaxDegree + 1) // 3 - max_used_times_tri
-    print(max_used_times_tri)
+    # print(max_used_times_tri)
     initial_alloca_nodes = alloca_nodes.copy()
     # initial net
     net = create_net(alloca_nodes)
@@ -236,12 +236,14 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                 neigh_graph_nodes_alloca = []
                 neigh_graph_nodes_unalloca = []
                 neigh_graph_nodes_unalloca_with_one = []
+                begin_qubit = set()
 
                 for gnode in neigh_graph_nodes_all:
                     if gnode not in list(alloca_nodes.keys()):
                         if gnode in cur_layer_nodes:
-                            if graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0:
+                            if graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0 or graph[alloca_node][gnode]['con_qubits'][alloca_node] == MaxDegree - 1:
                                 neigh_graph_nodes_unalloca.append(gnode)
+                                begin_qubit.add(graph[alloca_node][gnode]['con_qubits'][alloca_node])
                             else:
                                 neigh_graph_nodes_unalloca_with_one.append(gnode)
                     else:
@@ -307,23 +309,27 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                                 continue
                             new_node_net = search_node_net.copy()
                             new_node_net.add_edge(search_node_path[-1], untake_pos)
-                            new_node_net[search_node_path[-1]][untake_pos]['con_qubits'] = {}
-                            new_node_net[search_node_path[-1]][untake_pos]['con_qubits'][search_node_path[-1]] = 0
-                            new_node_net[search_node_path[-1]][untake_pos]['con_qubits'][untake_pos] = 1
+
+                            if max_used_times_tri:
+                                auxiliary_nodes_used_tri.append(untake_pos)
+                                auxiliary_nodes_used_times[untake_pos] = max_used_times
+                                new_node_net[search_node_path[-1]][untake_pos]['con_qubits'] = []
+                                if search_node_path[-1] != search_node_path[0]:
+                                    new_node_net[search_node_path[-1]][untake_pos]['con_qubits'].append({search_node_path[-1]: MaxDegree - 1, untake_pos: MaxDegree - 2})
                             new_node_net.nodes[untake_pos]['node_val'] = - alloca_node
                             new_node_path = search_node_path.copy()
                             new_node_path.append(untake_pos)
                             new_node = OneWaySearchNode(new_node_net, new_node_path)
                             heapq.heappush(search_set, new_node)
                 
-                # allocate node as much as possible
                 if search_node.f:
                     if len(search_node.path) == 1:
                         neigh_graph_nodes_unalloca = neigh_graph_nodes_unalloca + neigh_graph_nodes_unalloca_with_one
                     net = search_node.net
                     count_pos_untake_list = list(search_node.free_space)
                     # allocate the nodes
-                    pre_pos_list = []
+                    pre_nodes = []
+                    first_time_flag = 1
                     while len(count_pos_untake_list) and len(neigh_graph_nodes_unalloca):
                         untake_pos = count_pos_untake_list[0]
                         count_pos_untake_list.remove(untake_pos)
@@ -334,46 +340,48 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         if pre_pos == -1:
                             neigh_graph_nodes_unalloca.append(unalloca_node)
                             continue
-                        if max_used_times_tri == 1:
-                            if pre_pos in pre_pos_list:
-                                auxiliary_nodes_used_tri.append(pre_pos)
-                                auxiliary_nodes_used_times[pre_pos] += 1
-                            elif search_node.path.index(pre_pos) != len(search_node.path) - 1:
-                                auxiliary_nodes_used_tri.append(pre_pos)
-                                if pre_pos not in auxiliary_nodes_used_times.keys():
-                                    auxiliary_nodes_used_times[pre_pos] = max_used_times
-                                else:
-                                    auxiliary_nodes_used_times[pre_pos] += 1
-                            else:
-                                if pre_pos in auxiliary_nodes_used_times.keys():
-                                    auxiliary_nodes_used_times[pre_pos] -= 1
-                                else:
-                                    auxiliary_nodes_used_times[pre_pos] = max_used_times - 1     
-                        else:
-                            if pre_pos in auxiliary_nodes_used_times.keys():
-                                auxiliary_nodes_used_times[pre_pos] -= 1
-                            else:
-                                auxiliary_nodes_used_times[pre_pos] = max_used_times - 1     
-                        pre_pos_list.append(pre_pos)
-                        for pnode in search_node.path[1: search_node.path.index(pre_pos)]:
-                            if max_used_times_tri == 1:
-                                if pnode not in auxiliary_nodes_used_tri:
-                                    if pnode in auxiliary_nodes_used_times.keys():
-                                        auxiliary_nodes_used_times[pnode] -= 1
-                                    else:
-                                        auxiliary_nodes_used_times[pnode] = max_used_times - 1
-                            else:
+                        if max_used_times_tri and first_time_flag and len(search_node.path) > 1:
+                            net[search_node.path[0]][search_node.path[1]]['con_qubits'].append({search_node.path[0]: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], search_node.path[1]: MaxDegree - 2})
+                            first_time_flag = 0
+                        net.add_edge(pre_pos, untake_pos)
+                        if max_used_times_tri == 0:
+                            pre_pnode = search_node.path[0]
+                            for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
                                 if pnode in auxiliary_nodes_used_times.keys():
                                     auxiliary_nodes_used_times[pnode] -= 1
                                 else:
-                                    auxiliary_nodes_used_times[pnode] = max_used_times - 1  
-                        net.add_edge(pre_pos, untake_pos)
-                        net[pre_pos][untake_pos]['con_qubits'] = {}
-                        net[pre_pos][untake_pos]['con_qubits'][pre_pos] = graph[alloca_node][unalloca_node]['con_qubits'][alloca_node]
-                        net[pre_pos][untake_pos]['con_qubits'][untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
+                                    auxiliary_nodes_used_times[pnode] = max_used_times - 1
+                                
+                                if 'con_qubits' not in net[pre_pnode][pnode].keys():
+                                    net[pre_pnode][pnode]['con_qubits'] = []
+                                if pre_pnode == search_node.path[0]:
+                                    net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], pnode: 3 * auxiliary_nodes_used_times[pnode]})
+                                else:
+                                    net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], pnode: 3 * auxiliary_nodes_used_times[pnode]})
+                                pre_pnode = pnode
+
+                            net[pre_pos][untake_pos]['con_qubits'] = []
+                            if pre_pos != alloca_nodes[alloca_node]:
+                                net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                            else:
+                                net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                        else:
+                            net[pre_pos][untake_pos]['con_qubits'] = []
+                            if pre_pos != alloca_nodes[alloca_node]:
+                                if pre_pos not in pre_nodes:
+                                    dict_add = {} 
+                                    dict_add[pre_pos] = MaxDegree - 3
+                                    dict_add[untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
+                                    net[pre_pos][untake_pos]['con_qubits'].append(dict_add)
+                                    pre_nodes.append(pre_pos)
+                                    # print(1, pre_pos)
+                                else:
+                                    net[pre_pos][untake_pos]['con_qubits'].append({pre_pos: MaxDegree - 1, untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                                    # print(2, pre_pos)
+                            else:
+                                net[pre_pos][untake_pos]['con_qubits'].append({pre_pos: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
-
                         if len(list(graph.neighbors(unalloca_node))):
                             alloca_incomplete_nodes.append(unalloca_node)
                         else:
@@ -389,27 +397,11 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                     # create new net to use the shortest path function
                     node_set = [src_pos, dest_pos]
                     for nnode in net.nodes():
-                        # if MaxDegree <= 4:
-                        # if graph[alloca_node][node_dest]['con_qubits'][alloca_node] == 0:
-
-                        #     elif net.nodes[nnode]['node_val'] == - alloca_node and len(list(net.neighbors(nnode))) <= MaxDegree - 1:
-                        #         node_set.append(nnode)
-                        # else:
-                        #     if net.nodes[nnode]['node_val'] == - GraphN - 1:
-                        #         node_set.append(nnode)                            
-                        #     elif net.nodes[nnode]['node_val'] == - node_dest and len(list(net.neighbors(nnode))) <= MaxDegree - 1:
-                        #         node_set.append(nnode)
-                        # else:
-                        #     if net.nodes[nnode]['node_val'] == - GraphN - 1:
-                        #         node_set.append(nnode)                            
-                        # else:
-                        #     if net.nodes[nnode]['node_val'] < 0:
-                        #         node_set.append(nnode)                            
                         if max_used_times_tri == 0:
-                            if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
+                            if (net.nodes[nnode]['node_val'] == - GraphN - 1) or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
                                 node_set.append(nnode)
                         else:
-                            if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0) or nnode not in auxiliary_nodes_used_tri:
+                            if (net.nodes[nnode]['node_val'] == - GraphN - 1) or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0) or (nnode in auxiliary_nodes_used_times.keys() and nnode not in auxiliary_nodes_used_tri):
                                 node_set.append(nnode)                            
                     new_net = nx.Graph()
                     for nnode in node_set:
@@ -429,26 +421,64 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
                         shortest_path = nx.shortest_path(new_net, source=src_pos, target=dest_pos)
                         path_nodes = shortest_path[1:]
                         pre_node = src_pos
+                        pre_node_kind = 0
                         for nnode in path_nodes:
-                            if nnode in auxiliary_nodes_used_times.keys():
-                                if auxiliary_nodes_used_times != 0:
-                                    auxiliary_nodes_used_times[nnode] -= 1
+                            net.add_edge(pre_node, nnode)
+                            if 'con_qubits' not in net[pre_node][nnode].keys():
+                                net[pre_node][nnode]['con_qubits'] = []
+                            # if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
+                            #     print("true")
+                            # elif nnode == dest_pos:
+                            #     print("false1")
+                            # elif nnode == src_pos:
+                            #     print("false2")
+                            # else:
+                            #     print("false3")
+                            # if nnode in node_set:
+                            #     print("true node")
+                            # else:
+                            #     print("false node")
+                            if nnode == dest_pos:
+                                if pre_node == src_pos:
+                                    net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: MaxDegree - 2})
                                 else:
-                                    auxiliary_nodes_used_tri.append(nnode)
-                            elif net.nodes[nnode]['node_val'] == - GraphN - 1:
-                                auxiliary_nodes_used_times[nnode] = max_used_times - 1
+                                    if pre_node_kind == 1:
+                                        net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: graph[alloca_node][node_dest]['con_qubits'][node_dest]})
+                                    else:
+                                        net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: graph[alloca_node][node_dest]['con_qubits'][node_dest]})
+                            elif nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] == 0:
+                                auxiliary_nodes_used_tri.append(nnode)
+                                if pre_node == src_pos:
+                                    net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: MaxDegree - 2})
+                                else:
+                                    if pre_node_kind == 1:
+                                        net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: MaxDegree - 2})
+                                    else:
+                                        net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: MaxDegree - 2})
+                                pre_node_kind = 1
+                            else:
+                                if net.nodes[nnode]['node_val'] == - GraphN - 1:
+                                    auxiliary_nodes_used_times[nnode] = max_used_times - 1
+                                else:
+                                    auxiliary_nodes_used_times[nnode] -= 1
+                                if pre_node == src_pos:
+                                    net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: 3 * auxiliary_nodes_used_times[nnode]})
+                                else:
+                                    if pre_node_kind == 1:
+                                        net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: 3 * auxiliary_nodes_used_times[nnode]})
+                                    else:
+                                        net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: 3 * auxiliary_nodes_used_times[nnode]})
+                                pre_node_kind = 0
                             if nnode != dest_pos:
                                 net.nodes[nnode]['node_val'] = - alloca_node
-                            net.add_edge(pre_node, nnode)
-                            net[pre_node][nnode]['con_qubits'] = {}
-                            if pre_node == src_pos:
-                                net[pre_node][nnode]['con_qubits'][pre_node] = graph[alloca_node][node_dest]['con_qubits'][alloca_node]
-                            else:
-                                net[pre_node][nnode]['con_qubits'][pre_node] = 0
-                            if nnode == dest_pos:
-                                net[pre_node][nnode]['con_qubits'][nnode] = graph[alloca_node][node_dest]['con_qubits'][node_dest]
-                            else:
-                                net[pre_node][nnode]['con_qubits'][nnode] = 0
+                            # if pre_node == src_pos:
+                            #     net[pre_node][nnode]['con_qubits'][pre_node] = graph[alloca_node][node_dest]['con_qubits'][alloca_node]
+                            # else:
+                            #     net[pre_node][nnode]['con_qubits'][pre_node] = 0
+                            # if nnode == dest_pos:
+                            #     net[pre_node][nnode]['con_qubits'][nnode] = graph[alloca_node][node_dest]['con_qubits'][node_dest]
+                            # else:
+                            #     net[pre_node][nnode]['con_qubits'][nnode] = 0
                             pre_node = nnode
                         graph.remove_edge(alloca_node, node_dest)
                         if len(list(graph.neighbors(node_dest))) == 0:
@@ -555,7 +585,7 @@ def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
         # show the mapping net and save it
-        save_net(pre_graph, net, alloca_values, layer_index)
+        # save_net(pre_graph, net, alloca_values, layer_index)
 
         layer_index += 1  
         print(len(list(graph.nodes())))

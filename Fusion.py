@@ -115,7 +115,7 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                 graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
                 graph.add_edge(nnode, nodes_size)
                 graph[nnode][nodes_size]['con_qubits'] = {}
-                graph[nnode][nodes_size]['con_qubits'][nnode] = max_degree - 1
+                graph[nnode][nodes_size]['con_qubits'][nnode] = 0
                 graph[nnode][nodes_size]['con_qubits'][nodes_size] = 1
                 fusions += 1
                 nodes_size += 1
@@ -136,7 +136,7 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                         graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                         graph.add_edge(pre_node, nodes_size)
                         graph[pre_node][nodes_size]['con_qubits'] = {}
-                        graph[pre_node][nodes_size]['con_qubits'][pre_node] = max_degree - 1
+                        graph[pre_node][nodes_size]['con_qubits'][pre_node] = 0
                         graph[pre_node][nodes_size]['con_qubits'][nodes_size] = 1
                         fusions += 1
                         pre_node = nodes_size
@@ -149,124 +149,170 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure):
                             neigh_nnodes.remove(neigh_nnode)
                             graph.add_edge(pre_node, neigh_nnode)  
                             graph[pre_node][neigh_nnode]['con_qubits'] = {}
-                            if i == 0:
-                                graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
-                            else:
-                                graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = max_degree - 1
+                            graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 0
                             graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                             fusions += 1     
-        # line fusion added part  
-        all_nodes = graph.nodes()
-        degree_two_nodes = []
-        for gnode in all_nodes:
-            if len(list(graph.neighbors(gnode))) == 2:
-                degree_two_nodes.append(gnode)
 
-        while len(degree_two_nodes) >= 1:
-            cur_node = degree_two_nodes[0]
-            degree_two_nodes.remove(cur_node)
-            path = [cur_node]
-            extend_flag = 1
-            while extend_flag:
-                extend_flag = 0
-                neigh_head_nodes = graph.neighbors(path[0])
-                for nnode in neigh_head_nodes:
-                    if nnode not in path and nnode in degree_two_nodes:
-                    # if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[0]]['parent']:
-                        extend_flag = 1
-                        degree_two_nodes.remove(nnode)
-                        path = [nnode] + path
-                        break
-                
-                neigh_tail_nodes = graph.neighbors(path[-1])
-                for nnode in neigh_tail_nodes:
-                    if nnode not in path and nnode in degree_two_nodes:
-                    # if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[-1]]['parent']:
-                        extend_flag = 1
-                        degree_two_nodes.remove(nnode)
-                        path.append(nnode)
-                        break
+        for nnode in graph.nodes():
+            graph.nodes[nnode]['avail_qubits'] = []
+            for i in range(max_degree):
+                graph.nodes[nnode]['avail_qubits'].append(i)
 
-            neigh_head_nodes = graph.neighbors(path[0])
-            for nnode in neigh_head_nodes:
-                if nnode not in path:
-                    head_node = nnode
-                    break  
-
-            neigh_tail_nodes = graph.neighbors(path[-1])
-            for nnode in neigh_tail_nodes:
-                if nnode not in path and nnode != head_node:
-                    tail_node = nnode
-                    break      
-            
-            parent = graph.nodes[path[0]]['parent']    
-            number_nodes_to_be_connected = math.ceil(len(path) / (max_degree - 2))
-            head_con = graph[head_node][path[0]]['con_qubits'][head_node]
-            tail_con = graph[path[-1]][tail_node]['con_qubits'][tail_node]    
-            if len(path) <= max_degree - 3:
-                if (graph[head_node][path[0]]['con_qubits'][head_node] == 0 or graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1):
-                # if (graph[head_node][path[0]]['con_qubits'][head_node] == 0 or graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1) and graph.nodes[head_node]['parent'] == parent:
-                    pre_node = head_node
-                    for pnode in path:
-                        graph.remove_edge(pre_node, pnode)
-                        if pre_node != head_node:
-                            graph.remove_node(pre_node)
-                        pre_node = pnode
-                    graph.remove_edge(pre_node, tail_node)
-                    graph.remove_node(pre_node)
-                    graph.add_edge(head_node, tail_node)
-                    graph[head_node][tail_node]['con_qubits'] = {}
-                    graph[head_node][tail_node]['con_qubits'][head_node] = head_con
-                    graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
-                    continue
-                elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1):
-                # elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1) and graph.nodes[tail_node]['parent'] == parent:
-                    pre_node = head_node
-                    for pnode in path:
-                        graph.remove_edge(pre_node, pnode)
-                        if pre_node != head_node:
-                            graph.remove_node(pre_node)
-                        pre_node = pnode
-                    graph.remove_edge(pre_node, tail_node)
-                    graph.remove_node(pre_node)
-                    graph.add_edge(head_node, tail_node)
-                    graph[head_node][tail_node]['con_qubits'] = {}
-                    graph[head_node][tail_node]['con_qubits'][head_node] = head_con
-                    graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
-                    continue                    
-            # print(path)
-            
-            path.append(tail_node)
-            pre_node = head_node
-            for pnode in path:
-                # print(pre_node, pnode)
-                graph.remove_edge(pre_node, pnode)
-                if pre_node != head_node:
-                    graph.remove_node(pre_node)
-                pre_node = pnode
-            
-            pre_node = head_node
-            for i in range(number_nodes_to_be_connected):
-                graph.add_node(nodes_size)
-                graph.nodes[nodes_size]['parent'] = parent
-                graph.add_edge(pre_node, nodes_size)
-                graph[pre_node][nodes_size]['con_qubits'] = {}
-                if pre_node == head_node:
-                    graph[pre_node][nodes_size]['con_qubits'][pre_node] = head_con
+        for edge in graph.edges():
+            if graph[edge[0]][edge[1]]['con_qubits'][edge[0]] == 0:
+                if 0 in graph.nodes[edge[0]]['avail_qubits']:
+                    graph.nodes[edge[0]]['avail_qubits'].remove(0)
                 else:
-                    graph[pre_node][nodes_size]['con_qubits'][pre_node] = 0
-                graph[pre_node][nodes_size]['con_qubits'][nodes_size] = max_degree - 1
-                pre_node = nodes_size
-                nodes_size += 1
-
-            graph.add_edge(pre_node, tail_node)
-            graph[pre_node][tail_node]['con_qubits'] = {}
-            if pre_node == head_node:
-                graph[pre_node][tail_node]['con_qubits'][pre_node] = head_con
+                    graph.nodes[edge[0]]['avail_qubits'].remove(max_degree - 1)
+                    graph[edge[0]][edge[1]]['con_qubits'][edge[0]] = max_degree -1
             else:
-                graph[pre_node][tail_node]['con_qubits'][pre_node] = 0
-            graph[pre_node][tail_node]['con_qubits'][tail_node] = tail_con         
-                        
+                graph.nodes[edge[0]]['avail_qubits'].remove(graph[edge[0]][edge[1]]['con_qubits'][edge[0]])
+            
+            if graph[edge[0]][edge[1]]['con_qubits'][edge[1]] == 0:
+                if 0 in graph.nodes[edge[1]]['avail_qubits']:
+                    graph.nodes[edge[1]]['avail_qubits'].remove(0)
+                else:
+                    graph.nodes[edge[1]]['avail_qubits'].remove(max_degree - 1)
+                    graph[edge[0]][edge[1]]['con_qubits'][edge[1]] = max_degree -1
+            else:
+                graph.nodes[edge[1]]['avail_qubits'].remove(graph[edge[0]][edge[1]]['con_qubits'][edge[1]])
+
+        # # line fusion added part  
+        # all_nodes = graph.nodes()
+        # degree_two_nodes = []
+        # for gnode in all_nodes:
+        #     if len(list(graph.neighbors(gnode))) == 2:
+        #         degree_two_nodes.append(gnode)
+
+        # while len(degree_two_nodes) >= 1:
+        #     cur_node = degree_two_nodes[0]
+        #     degree_two_nodes.remove(cur_node)
+        #     path = [cur_node]
+        #     extend_flag = 1
+        #     while extend_flag:
+        #         extend_flag = 0
+        #         neigh_head_nodes = graph.neighbors(path[0])
+        #         for nnode in neigh_head_nodes:
+        #             if nnode not in path and nnode in degree_two_nodes:
+        #             # if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[0]]['parent']:
+        #                 extend_flag = 1
+        #                 degree_two_nodes.remove(nnode)
+        #                 path = [nnode] + path
+        #                 break
+                
+        #         neigh_tail_nodes = graph.neighbors(path[-1])
+        #         for nnode in neigh_tail_nodes:
+        #             if nnode not in path and nnode in degree_two_nodes:
+        #             # if nnode not in path and nnode in degree_two_nodes and graph.nodes[nnode]['parent'] == graph.nodes[path[-1]]['parent']:
+        #                 extend_flag = 1
+        #                 degree_two_nodes.remove(nnode)
+        #                 path.append(nnode)
+        #                 break
+
+        #     neigh_head_nodes = graph.neighbors(path[0])
+        #     for nnode in neigh_head_nodes:
+        #         if nnode not in path:
+        #             head_node = nnode
+        #             break  
+
+        #     neigh_tail_nodes = graph.neighbors(path[-1])
+        #     for nnode in neigh_tail_nodes:
+        #         if nnode not in path and nnode != head_node:
+        #             tail_node = nnode
+        #             break      
+            
+        #     parent = graph.nodes[path[0]]['parent']    
+        #     number_nodes_to_be_connected = math.ceil(len(path) / (max_degree - 2))
+        #     head_con = graph[head_node][path[0]]['con_qubits'][head_node]
+        #     tail_con = graph[path[-1]][tail_node]['con_qubits'][tail_node]    
+        #     if len(path) <= max_degree - 3:
+        #         if graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1:
+        #         # if (graph[head_node][path[0]]['con_qubits'][head_node] == 0 or graph[head_node][path[0]]['con_qubits'][head_node] == max_degree - 1) and graph.nodes[head_node]['parent'] == parent:
+        #             pre_node = head_node
+        #             for pnode in path:
+        #                 graph.remove_edge(pre_node, pnode)
+        #                 if pre_node != head_node:
+        #                     graph.remove_node(pre_node)
+        #                 pre_node = pnode
+        #             graph.remove_edge(pre_node, tail_node)
+        #             graph.remove_node(pre_node)
+        #             graph.add_edge(head_node, tail_node)
+        #             graph[head_node][tail_node]['con_qubits'] = {}
+        #             graph[head_node][tail_node]['con_qubits'][head_node] = head_con
+        #             graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
+        #             continue
+        #         elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1):
+        #         # elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1) and graph.nodes[tail_node]['parent'] == parent:
+        #             pre_node = head_node
+        #             for pnode in path:
+        #                 graph.remove_edge(pre_node, pnode)
+        #                 if pre_node != head_node:
+        #                     graph.remove_node(pre_node)
+        #                 pre_node = pnode
+        #             graph.remove_edge(pre_node, tail_node)
+        #             graph.remove_node(pre_node)
+        #             graph.add_edge(head_node, tail_node)
+        #             graph[head_node][tail_node]['con_qubits'] = {}
+        #             graph[head_node][tail_node]['con_qubits'][head_node] = head_con
+        #             graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
+        #             continue                    
+        #     # print(path)
+            
+        #     path.append(tail_node)
+        #     pre_node = head_node
+        #     for pnode in path:
+        #         # print(pre_node, pnode)
+        #         graph.remove_edge(pre_node, pnode)
+        #         if pre_node != head_node:
+        #             graph.remove_node(pre_node)
+        #         pre_node = pnode
+            
+        #     pre_node = head_node
+        #     for i in range(number_nodes_to_be_connected):
+        #         graph.add_node(nodes_size)
+        #         graph.nodes[nodes_size]['parent'] = parent
+        #         graph.add_edge(pre_node, nodes_size)
+        #         graph[pre_node][nodes_size]['con_qubits'] = {}
+        #         if pre_node == head_node:
+        #             graph[pre_node][nodes_size]['con_qubits'][pre_node] = head_con
+        #         else:
+        #             graph[pre_node][nodes_size]['con_qubits'][pre_node] = 0
+        #             graph.nodes[pre_node]['avail_nodes'].remove(0)
+        #         graph.nodes[nodes_size]['avail_nodes'] = []
+        #         for i in range(max_degree):
+        #             graph.nodes[nodes_size]['avail_nodes'].append(i)
+        #         graph[pre_node][nodes_size]['con_qubits'][nodes_size] = max_degree - 1
+        #         graph.nodes[nodes_size]['avail_nodes'].remove(max_degree - 1)
+        #         pre_node = nodes_size
+        #         nodes_size += 1
+
+        #     graph.add_edge(pre_node, tail_node)
+        #     graph[pre_node][tail_node]['con_qubits'] = {}
+        #     if pre_node == head_node:
+        #         graph[pre_node][tail_node]['con_qubits'][pre_node] = head_con
+        #     else:
+        #         graph[pre_node][tail_node]['con_qubits'][pre_node] = 0
+        #         graph.nodes[pre_node]['avail_nodes'].remove(0)
+        #     graph[pre_node][tail_node]['con_qubits'][tail_node] = tail_con 
+
+        for nnode in graph.nodes():
+            graph.nodes[nnode]['avail_qubits_vali'] = []
+            for i in range(max_degree):
+                graph.nodes[nnode]['avail_qubits_vali'].append(i)
+        
+        for edge in graph.edges():
+            if graph[edge[0]][edge[1]]['con_qubits'][edge[0]] in graph.nodes[edge[0]]['avail_qubits_vali']:
+                graph.nodes[edge[0]]['avail_qubits_vali'].remove(graph[edge[0]][edge[1]]['con_qubits'][edge[0]])
+            else:
+                print("fusion connected qubits validation error1!")
+                return graph, added_nodes
+
+            if graph[edge[0]][edge[1]]['con_qubits'][edge[1]] in graph.nodes[edge[1]]['avail_qubits_vali']:
+                graph.nodes[edge[1]]['avail_qubits_vali'].remove(graph[edge[0]][edge[1]]['con_qubits'][edge[1]])
+            else:
+                print("fusion connected qubits validation error2!")
+                return graph, added_nodes          
+        print("fusion connected qubits validation success!")
                 # show_graph(graph, added_nodes)
     # print("fusions:", fusions)    
     return graph, added_nodes
