@@ -108,10 +108,13 @@ def find_pre_pos(net, path, pos, MaxDegree):
         return pos + 1  
     return -1
 
-def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
+def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree, SpeicialFusion):
     auxiliary_nodes_used_times = {}
     auxiliary_nodes_used_tri = []
-    max_used_times_tri = math.ceil((2 - MaxDegree % 3) / 2) 
+    if not SpeicialFusion:
+        max_used_times_tri = math.ceil((2 - MaxDegree % 3) / 2) 
+    else:
+        max_used_times_tri = 0
     max_used_times = (MaxDegree + 1) // 3 - max_used_times_tri
     # print(max_used_times_tri)
     initial_alloca_nodes = alloca_nodes.copy()
@@ -511,7 +514,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree):
 
 
 
-def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
+def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree, SpecialFusion):
     # get fgraph information
     graph = fgraph.copy()
     GraphN = len(list(graph.nodes()))
@@ -563,7 +566,7 @@ def compact_graph_dynamic_list(fgraph, dgraph, MaxDegree):
                     index += 1                  
 
         # map and route current layer nodes 
-        net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree)  
+        net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree, SpecialFusion)  
         for gnode in graph.nodes():
             if len(list(graph.neighbors(gnode))) == 0:
                 graph.remove_node(gnode)
