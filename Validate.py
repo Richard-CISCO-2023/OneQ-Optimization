@@ -96,6 +96,7 @@ def validate_con_qubits_list(net_list, MaxDegree):
                     qubits.append(i)
                 #print(qubits)
                 neigh_nnodes = net.neighbors(nnode)
+    
                 for neigh_nnode in neigh_nnodes:
                     for con_qubit in net[nnode][neigh_nnode]['con_qubits']:
                         # print("loops")

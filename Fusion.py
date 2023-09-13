@@ -112,6 +112,7 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure, SpecialFusion):
                 pre_node = nodes_size
                 added_nodes.append(nodes_size)
                 graph.add_node(nodes_size)
+                graph.nodes[nodes_size]['phase'] = []
                 graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
                 graph.add_edge(nnode, nodes_size)
                 graph[nnode][nodes_size]['con_qubits'] = {}
@@ -133,6 +134,7 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure, SpecialFusion):
                         fusions += 1
                         added_nodes.append(nodes_size)
                         graph.add_node(nodes_size)
+                        graph.nodes[nodes_size]['phase'] = []
                         graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                         graph.add_edge(pre_node, nodes_size)
                         graph[pre_node][nodes_size]['con_qubits'] = {}
@@ -231,6 +233,7 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure, SpecialFusion):
                         pre_node = head_node
                         for pnode in path:
                             graph.remove_edge(pre_node, pnode)
+                            graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pnode]['phase']
                             if pre_node != head_node:
                                 graph.remove_node(pre_node)
                             pre_node = pnode
@@ -241,10 +244,12 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure, SpecialFusion):
                         graph[head_node][tail_node]['con_qubits'][head_node] = head_con
                         graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
                         continue
-                    elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1):
+                    elif graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1:
                     # elif (graph[path[-1]][tail_node]['con_qubits'][tail_node] == 0 or graph[path[-1]][tail_node]['con_qubits'][tail_node] == max_degree - 1) and graph.nodes[tail_node]['parent'] == parent:
                         pre_node = head_node
+                        phase_list = []
                         for pnode in path:
+                            phase_list = graph.nodes[pnode]['phase'] + phase_list
                             graph.remove_edge(pre_node, pnode)
                             if pre_node != head_node:
                                 graph.remove_node(pre_node)
@@ -252,6 +257,7 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure, SpecialFusion):
                         graph.remove_edge(pre_node, tail_node)
                         graph.remove_node(pre_node)
                         graph.add_edge(head_node, tail_node)
+                        graph.nodes[tail_node]['phase'] = graph.nodes[tail_node]['phase'] + phase_list
                         graph[head_node][tail_node]['con_qubits'] = {}
                         graph[head_node][tail_node]['con_qubits'][head_node] = head_con
                         graph[head_node][tail_node]['con_qubits'][tail_node] = tail_con
@@ -260,16 +266,25 @@ def fusion_graph_dynamic(graph, max_degree, StarStructure, SpecialFusion):
                 
                 path.append(tail_node)
                 pre_node = head_node
+                phase_list = []
                 for pnode in path:
                     # print(pre_node, pnode)
                     graph.remove_edge(pre_node, pnode)
                     if pre_node != head_node:
                         graph.remove_node(pre_node)
+                        phase_list = phase_list + graph.nodes[pnode]['phase']
                     pre_node = pnode
                 
                 pre_node = head_node
                 for i in range(number_nodes_to_be_connected):
                     graph.add_node(nodes_size)
+                    graph.nodes[nodes_size]['phase'] = []
+                    for i in range(max_degree - 2):
+                        if len(phase_list) == 0:
+                            break
+                        cur_phase = phase_list[0]
+                        phase_list.remove(cur_phase)
+                        graph.nodes[nodes_size]['phase'].append(cur_phase)
                     graph.nodes[nodes_size]['parent'] = parent
                     graph.add_edge(pre_node, nodes_size)
                     graph[pre_node][nodes_size]['con_qubits'] = {}
