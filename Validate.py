@@ -109,6 +109,8 @@ def validate_con_qubits_list(net_list, MaxDegree):
                                 print("auxiliary node")
                             else:
                                 print("actual node")
+                            print(net.nodes[nnode]['node_val'])
+                            print(nnode)
                             print(con_qubit[nnode])
                             print(net_index)
                             return
