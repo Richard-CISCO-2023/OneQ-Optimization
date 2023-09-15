@@ -265,7 +265,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, MaxDegree, Sp
                 search_set = []
                 search_node = OneWaySearchNode(net, [alloca_nodes[alloca_node]])
                 heapq.heappush(search_set, search_node)
-                tri_flag = (max_used_times_tri == 1) & (len(graph.nodes[alloca_node]['phase']) < 2)
+                tri_flag = (max_used_times_tri == 1) & ((len(graph.nodes[alloca_node]['phase']) == 0) or ((len(graph.nodes[alloca_node]['phase']) == 1 ) & (len(neigh_graph_nodes_unalloca_with_one) == 0)))
                 search_index = 0
                 while len(search_set):
                     # reach the search times' upper bound
