@@ -302,7 +302,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                 for gnode in neigh_graph_nodes_all:
                     if gnode not in list(alloca_nodes.keys()):
                         if gnode in cur_layer_nodes:
-                            if graph[alloca_node][gnode]['con_qubits'][alloca_node] == 0 or graph[alloca_node][gnode]['con_qubits'][alloca_node] == MaxDegree - 1:
+                            if graph[alloca_node][gnode]['con_qubits'][alloca_node] > 0:
                                 neigh_graph_nodes_unalloca.append(gnode)
                                 begin_qubit.add(graph[alloca_node][gnode]['con_qubits'][alloca_node])
                             else:
@@ -398,27 +398,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                         neigh_graph_nodes_unalloca = neigh_graph_nodes_unalloca + neigh_graph_nodes_unalloca_with_one
                     net = search_node.net
                     count_pos_untake_list = list(search_node.free_space)
-                    # allocate the nodes
-                    pre_nodes = []
-                    first_time_flag = 1
-                    index = 0
-                    if tri_flag:
-                        pre_node = search_node.path[0]
-                        for untake_pos in search_node.path[1:]:
-                            auxiliary_nodes_used_tri.append(untake_pos)
-                            auxiliary_nodes_used_times[untake_pos] = max_used_times
-                            net[pre_node][untake_pos]['con_qubits'] = []
-                            if pre_node != search_node_path[0]:
-                                net[pre_node][untake_pos]['con_qubits'].append({pre_node: MaxDegree - 1, untake_pos: MaxDegree - 2})
-                                # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[untake_pos]:
-                                #     auxiliary_nodes_used_avail_nodes[untake_pos].remove(MaxDegree - 2)
-                                # else:
-                                #     print("mapping error1")
-                                # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_node]:
-                                #     auxiliary_nodes_used_avail_nodes[pre_node].remove(MaxDegree - 1)
-                                # else:
-                                #     print("mapping error2")      
-                            pre_node = untake_pos    
+                    index = 0  
                     while len(count_pos_untake_list) and len(neigh_graph_nodes_unalloca):
                         untake_pos = count_pos_untake_list[0]
                         count_pos_untake_list.remove(untake_pos)
@@ -430,117 +410,44 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                             neigh_graph_nodes_unalloca.append(unalloca_node)
                             continue
                         index += 1
-                        if tri_flag and first_time_flag and len(search_node.path) > 1:
-                            net[search_node.path[0]][search_node.path[1]]['con_qubits'].append({search_node.path[0]: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], search_node.path[1]: MaxDegree - 2})
-                            # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[search_node.path[1]]:
-                            #     auxiliary_nodes_used_avail_nodes[search_node.path[1]].remove(MaxDegree - 2)
-                            # else:
-                            #     print("mapping error3")       
-                            first_time_flag = 0
+                        if index > max_used_times:
+                            break
                         net.add_edge(pre_pos, untake_pos)
-                        # print(max_used_times)
-                        # print("index", index)
-                        if not tri_flag:
-                            if index <= max_used_times:
-                                pre_pnode = search_node.path[0]
-                                for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
-                                    if pnode in auxiliary_nodes_used_times.keys():
-                                        auxiliary_nodes_used_times[pnode] -= 1
-                                    else:
-                                        auxiliary_nodes_used_times[pnode] = max_used_times - 1
-                                    
-                                    if 'con_qubits' not in net[pre_pnode][pnode].keys():
-                                        net[pre_pnode][pnode]['con_qubits'] = []
-                                    if pre_pnode == search_node.path[0]:
-                                        net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], pnode: 3 * auxiliary_nodes_used_times[pnode]})
-                                        # if 3 * auxiliary_nodes_used_times[pnode] in auxiliary_nodes_used_avail_nodes[pnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[pnode].remove(3 * auxiliary_nodes_used_times[pnode])
-                                        # else:
-                                        #     print("mapping error4")  
-                                    else:
-                                        net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], pnode: 3 * auxiliary_nodes_used_times[pnode]})
-                                        # if 3 * auxiliary_nodes_used_times[pnode] in auxiliary_nodes_used_avail_nodes[pnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[pnode].remove(3 * auxiliary_nodes_used_times[pnode])
-                                        # else:
-                                        #     print("mapping error5")  
-                                        # if 1 + 3 * auxiliary_nodes_used_times[pre_pnode] in auxiliary_nodes_used_avail_nodes[pre_pnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[pre_pnode].remove(1 + 3 * auxiliary_nodes_used_times[pre_pnode])
-                                        # else:
-                                        #     print("mapping error6")  
-                                    pre_pnode = pnode
+                        pre_pnode = search_node.path[0]
 
-                                net[pre_pos][untake_pos]['con_qubits'] = []
-                                if pre_pos != alloca_nodes[alloca_node]:
-                                    net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
-                                    # if 1 + 3 * auxiliary_nodes_used_times[pre_pnode] in auxiliary_nodes_used_avail_nodes[pre_pnode]:
-                                    #     auxiliary_nodes_used_avail_nodes[pre_pnode].remove(1 + 3 * auxiliary_nodes_used_times[pre_pnode])
-                                    # else:
-                                    #     print("mapping error7")  
-                                else:
-                                    net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
-                        #     else:
-                        #         print("use tri to support bi")
-                        #         pre_pnode = search_node.path[0]
-                        #         for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:                                
-                        #             auxiliary_nodes_used_tri.append(pnode)
-                        #             if 'con_qubits' not in net[pre_pnode][pnode].keys():
-                        #                 net[pre_pnode][pnode]['con_qubits'] = []
-                        #             if pre_pnode == search_node.path[0]:
-                        #                 net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], pnode: MaxDegree - 2})
-                        #                 # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[pnode]:
-                        #                 #     auxiliary_nodes_used_avail_nodes[pnode].remove(MaxDegree - 2)
-                        #                 # else:
-                        #                 #     print("mapping error8")  
-                        #             else:
-                        #                 net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: MaxDegree - 1, pnode: MaxDegree - 2})
-                        #                 # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[pnode]:
-                        #                 #     auxiliary_nodes_used_avail_nodes[pnode].remove(MaxDegree - 2)
-                        #                 # else:
-                        #                 #     print("mapping error9")  
-                        #                 # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_pnode]:
-                        #                 #     auxiliary_nodes_used_avail_nodes[pre_pnode].remove(MaxDegree - 1)
-                        #                 # else:
-                        #                 #     print("mapping error10")   
-                        #             pre_pnode = pnode        
-                        #         net[pre_pos][untake_pos]['con_qubits'] = []
-                        #         if pre_pos != alloca_nodes[alloca_node]:
-                        #             net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: MaxDegree - 1, untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
-                        #             # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_pnode]:
-                        #             #     auxiliary_nodes_used_avail_nodes[pre_pnode].remove(MaxDegree - 1)
-                        #             # else:
-                        #             #     print("mapping error11")                                   
-                        #         else:
-                        #             net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})                           
-                        else:
-                            net[pre_pos][untake_pos]['con_qubits'] = []
-                            if pre_pos != alloca_nodes[alloca_node]:
-                                if pre_pos not in pre_nodes:
-                                    dict_add = {} 
-                                    dict_add[pre_pos] = MaxDegree - 3
-                                    dict_add[untake_pos] = graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]
-                                    net[pre_pos][untake_pos]['con_qubits'].append(dict_add)
-                                    # if MaxDegree - 3 in auxiliary_nodes_used_avail_nodes[pre_pos]:
-                                    #     auxiliary_nodes_used_avail_nodes[pre_pos].remove(MaxDegree - 3)
-                                    # else:
-                                    #     print("mapping error12")                                       
-                                    pre_nodes.append(pre_pos)
-                                    # print(1, pre_pos)
-                                else:
-                                    net[pre_pos][untake_pos]['con_qubits'].append({pre_pos: MaxDegree - 1, untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
-                                    # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_pos]:
-                                    #     auxiliary_nodes_used_avail_nodes[pre_pos].remove(MaxDegree - 1)
-                                    # else:
-                                    #     print("mapping error26")    
-                                    # print(2, pre_pos)
+                        for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
+                            if pnode in auxiliary_nodes_used_times.keys():
+                                auxiliary_nodes_used_times[pnode] -= 1
                             else:
-                                net[pre_pos][untake_pos]['con_qubits'].append({pre_pos: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                                auxiliary_nodes_used_times[pnode] = max_used_times - 1
+                            
+                            if 'con_qubits' not in net[pre_pnode][pnode].keys():
+                                net[pre_pnode][pnode]['con_qubits'] = []
+                            if pre_pnode == search_node.path[0]:
+                                net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], pnode: 3 * auxiliary_nodes_used_times[pnode]})
+                            else:
+                                net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], pnode: 3 * auxiliary_nodes_used_times[pnode]})
+
+                            pre_pnode = pnode
+
+                        net[pre_pos][untake_pos]['con_qubits'] = []
+                        if pre_pos != alloca_nodes[alloca_node]:
+                            net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                        else:
+                            net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
                         if len(list(graph.neighbors(unalloca_node))):
                             alloca_incomplete_nodes.append(unalloca_node)
                         else:
                             graph.remove_node(unalloca_node)
-
+                    pre_node = search_node.path[0]
+                    # print("begin")
+                    for pnode in search_node.path[1:]:
+                        # print(pre_node, pnode)
+                        if 'con_qubits' not in net[pre_node][pnode].keys():
+                            net.remove_edge(pre_node, pnode)
+                        pre_node = pnode
                 # search path to node allocated
                 while len(neigh_graph_nodes_alloca):
                     node_dest = neigh_graph_nodes_alloca[0]
@@ -608,36 +515,6 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                                         #     auxiliary_nodes_used_avail_nodes[pre_node].remove(1 + 3 * auxiliary_nodes_used_times[pre_node])
                                         # else:
                                         #     print("mapping error15")  
-                            elif nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] == 0:
-                                auxiliary_nodes_used_tri.append(nnode)
-                                if pre_node == src_pos:
-                                    net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: MaxDegree - 2})
-                                    # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[nnode]:
-                                    #     auxiliary_nodes_used_avail_nodes[nnode].remove(MaxDegree - 2)
-                                    # else:
-                                    #     print("mapping error16")  
-                                else:
-                                    if pre_node_kind == 1:
-                                        net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: MaxDegree - 2})
-                                        # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[nnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[nnode].remove(MaxDegree - 2)
-                                        # else:
-                                        #     print("mapping error17")
-                                        # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_node]:
-                                        #     auxiliary_nodes_used_avail_nodes[pre_node].remove(MaxDegree - 1)
-                                        # else:
-                                        #     print("mapping error18")                                            
-                                    else:
-                                        net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: MaxDegree - 2})
-                                        # if MaxDegree - 2 in auxiliary_nodes_used_avail_nodes[nnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[nnode].remove(MaxDegree - 2)
-                                        # else:
-                                        #     print("mapping error19")
-                                        # if 1 + 3 * auxiliary_nodes_used_times[pre_node] in auxiliary_nodes_used_avail_nodes[pre_node]:
-                                        #     auxiliary_nodes_used_avail_nodes[pre_node].remove(1 + 3 * auxiliary_nodes_used_times[pre_node])
-                                        # else:
-                                        #     print("mapping error20")  
-                                pre_node_kind = 1
                             else:
                                 if net.nodes[nnode]['node_val'] == - GraphN - 1:
                                     auxiliary_nodes_used_times[nnode] = max_used_times - 1
@@ -652,35 +529,14 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                                 else:
                                     if pre_node_kind == 1:
                                         net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: 3 * auxiliary_nodes_used_times[nnode]})
-                                        # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_node]:
-                                        #     auxiliary_nodes_used_avail_nodes[pre_node].remove(MaxDegree - 1)
-                                        # else:
-                                        #     print("mapping error22")   
-                                        # if  3 * auxiliary_nodes_used_times[nnode] in auxiliary_nodes_used_avail_nodes[nnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[nnode].remove( 3 * auxiliary_nodes_used_times[nnode])
-                                        # else:
-                                        #     print("mapping error23")
+
                                     else:
                                         net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: 3 * auxiliary_nodes_used_times[nnode]})
-                                        # if  3 * auxiliary_nodes_used_times[nnode] in auxiliary_nodes_used_avail_nodes[nnode]:
-                                        #     auxiliary_nodes_used_avail_nodes[nnode].remove( 3 * auxiliary_nodes_used_times[nnode])
-                                        # else:
-                                        #     print("mapping error24")
-                                        # if 1 + 3 * auxiliary_nodes_used_times[pre_node] in auxiliary_nodes_used_avail_nodes[pre_node]:
-                                        #     auxiliary_nodes_used_avail_nodes[pre_node].remove(1 + 3 * auxiliary_nodes_used_times[pre_node])
-                                        # else:
-                                        #     print("mapping error25")  
+
                                 pre_node_kind = 0
                             if nnode != dest_pos:
                                 net.nodes[nnode]['node_val'] = - alloca_node
-                            # if pre_node == src_pos:
-                            #     net[pre_node][nnode]['con_qubits'][pre_node] = graph[alloca_node][node_dest]['con_qubits'][alloca_node]
-                            # else:
-                            #     net[pre_node][nnode]['con_qubits'][pre_node] = 0
-                            # if nnode == dest_pos:
-                            #     net[pre_node][nnode]['con_qubits'][nnode] = graph[alloca_node][node_dest]['con_qubits'][node_dest]
-                            # else:
-                            #     net[pre_node][nnode]['con_qubits'][nnode] = 0
+
                             pre_node = nnode
                         graph.remove_edge(alloca_node, node_dest)
                         if len(list(graph.neighbors(node_dest))) == 0:

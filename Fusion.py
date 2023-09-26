@@ -428,6 +428,8 @@ def get_basic_rs(rs):
                     avail_to_visit[nneigh_rnode] = 0
 
     max_degree = len(pre_degree_nodes)
+    if max_degree < 2:
+        return depths, max_degree, 0
     depth = 2
     
     while len(pre_degree_nodes):
@@ -511,6 +513,8 @@ def get_basic_rs(rs):
 
 def fusion_dynamic_general(graph, rs):
     depths, max_degree, max_length = get_basic_rs(rs)
+    if max_degree < 2:
+        return -1
     # print(depths, max_degree, max_length)
     fusions = 0
     added_nodes =  []
@@ -538,6 +542,7 @@ def fusion_dynamic_general(graph, rs):
             pre_node = nodes_size
             added_nodes.append(nodes_size)
             graph.add_node(nodes_size)
+            graph.nodes[nodes_size]['phase'] = []
             graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
             graph.add_edge(nnode, nodes_size)
             graph[nnode][nodes_size]['con_qubits'] = {}
@@ -560,6 +565,7 @@ def fusion_dynamic_general(graph, rs):
                         fusions += 1
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
+                    graph.nodes[nodes_size]['phase'] = []
                     graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                     graph.add_edge(pre_node, nodes_size)
                     graph[pre_node][nodes_size]['con_qubits'] = {}
@@ -641,7 +647,6 @@ def fusion_dynamic_general(graph, rs):
             if neigh_node not in path and len(list(graph.neighbors(neigh_node))) != 2 and neigh_node != head_node:
                 tail_node = neigh_node
                 break  
-        parent = graph.nodes[path[0]]['parent'] 
         head_con = graph[head_node][path[0]]['con_qubits'][head_node]
         tail_con = graph[path[-1]][tail_node]['con_qubits'][tail_node]       
         if head_con:
@@ -651,17 +656,29 @@ def fusion_dynamic_general(graph, rs):
                 if len(path) == 0:
                     break         
                 graph.remove_edge(pre_node, path[0])
+                if pre_node != head_node:
+                    graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pre_node]['phase']
+                    graph.remove_node(pre_node)
+                    
                 pre_node = path[0]
                 path.remove(pre_node)
             if len(path):
                 path_con = graph[pre_node][path[0]]['con_qubits'][path[0]]
                 graph.remove_edge(pre_node, path[0])
+                if pre_node != head_node:
+                    graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pre_node]['phase']
+                    graph.remove_node(pre_node)
+                    
                 graph.add_edge(head_node, path[0])
                 graph[head_node][path[0]]['con_qubits'] = {}
                 graph[head_node][path[0]]['con_qubits'][head_node] = head_con
                 graph[head_node][path[0]]['con_qubits'][path[0]] = path_con 
             else:
                 graph.remove_edge(pre_node, tail_node)
+                if pre_node != head_node:
+                    graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pre_node]['phase']
+                    graph.remove_node(pre_node)
+                    
                 graph.add_edge(head_node, tail_node)
                 graph[head_node][tail_node]['con_qubits'] = {}
                 graph[head_node][tail_node]['con_qubits'][head_node] = head_con
@@ -674,17 +691,28 @@ def fusion_dynamic_general(graph, rs):
                 if len(path) == 0:
                     break         
                 graph.remove_edge(path[-1], pre_node)
+                if pre_node != tail_node:
+                    graph.nodes[tail_node]['phase'] = graph.nodes[pre_node]['phase'] + graph.nodes[tail_node]['phase']
+                    graph.remove_node(pre_node)
+
                 pre_node = path[-1]
                 path.remove(pre_node)
             if len(path):
                 path_con = graph[path[-1]][pre_node]['con_qubits'][path[-1]]
                 graph.remove_edge(pre_node, path[-1])
+                if pre_node != tail_node:
+                    graph.nodes[tail_node]['phase'] = graph.nodes[pre_node]['phase'] + graph.nodes[tail_node]['phase']
+                    graph.remove_node(pre_node)
+
                 graph.add_edge(tail_node, path[-1])
                 graph[tail_node][path[-1]]['con_qubits'] = {}
                 graph[tail_node][path[-1]]['con_qubits'][tail_node] = tail_con
                 graph[tail_node][path[-1]]['con_qubits'][path[-1]] = path_con 
             else:
                 graph.remove_edge(pre_node, head_node)
+                if pre_node != tail_node:
+                    graph.nodes[tail_node]['phase'] = graph.nodes[pre_node]['phase'] + graph.nodes[tail_node]['phase']
+                    graph.remove_node(pre_node)
                 graph.add_edge(head_node, tail_node)
                 graph[head_node][tail_node]['con_qubits'] = {}
                 graph[head_node][tail_node]['con_qubits'][head_node] = head_con
