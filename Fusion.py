@@ -542,7 +542,8 @@ def fusion_dynamic_general(graph, rs):
             pre_node = nodes_size
             added_nodes.append(nodes_size)
             graph.add_node(nodes_size)
-            graph.nodes[nodes_size]['phase'] = []
+            graph.nodes[nodes_size]['phase'] = {}
+            graph.nodes[nodes_size]['phase'][0] = []
             graph.nodes[nodes_size]['parent'] = graph.nodes[nnode]['parent']
             graph.add_edge(nnode, nodes_size)
             graph[nnode][nodes_size]['con_qubits'] = {}
@@ -565,7 +566,8 @@ def fusion_dynamic_general(graph, rs):
                         fusions += 1
                     added_nodes.append(nodes_size)
                     graph.add_node(nodes_size)
-                    graph.nodes[nodes_size]['phase'] = []
+                    graph.nodes[nodes_size]['phase'] = {}
+                    graph.nodes[nodes_size]['phase'][0] = []
                     graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                     graph.add_edge(pre_node, nodes_size)
                     graph[pre_node][nodes_size]['con_qubits'] = {}
@@ -657,7 +659,9 @@ def fusion_dynamic_general(graph, rs):
                     break         
                 graph.remove_edge(pre_node, path[0])
                 if pre_node != head_node:
-                    graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pre_node]['phase']
+                    if head_con not in graph.nodes[head_node]['phase'].keys():
+                        graph.nodes[head_node]['phase'][head_con] = []
+                    graph.nodes[head_node]['phase'][head_con] = graph.nodes[head_node]['phase'][head_con] + graph.nodes[pre_node]['phase'][0]
                     graph.remove_node(pre_node)
                     
                 pre_node = path[0]
@@ -666,7 +670,9 @@ def fusion_dynamic_general(graph, rs):
                 path_con = graph[pre_node][path[0]]['con_qubits'][path[0]]
                 graph.remove_edge(pre_node, path[0])
                 if pre_node != head_node:
-                    graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pre_node]['phase']
+                    if head_con not in graph.nodes[head_node]['phase'].keys():
+                        graph.nodes[head_node]['phase'][head_con] = []
+                    graph.nodes[head_node]['phase'][head_con] = graph.nodes[head_node]['phase'][head_con] + graph.nodes[pre_node]['phase'][0]
                     graph.remove_node(pre_node)
                     
                 graph.add_edge(head_node, path[0])
@@ -676,7 +682,9 @@ def fusion_dynamic_general(graph, rs):
             else:
                 graph.remove_edge(pre_node, tail_node)
                 if pre_node != head_node:
-                    graph.nodes[head_node]['phase'] = graph.nodes[head_node]['phase'] + graph.nodes[pre_node]['phase']
+                    if head_con not in graph.nodes[head_node]['phase'].keys():
+                        graph.nodes[head_node]['phase'][head_con] = []
+                    graph.nodes[head_node]['phase'][head_con] = graph.nodes[head_node]['phase'][head_con] + graph.nodes[pre_node]['phase'][0]
                     graph.remove_node(pre_node)
                     
                 graph.add_edge(head_node, tail_node)
@@ -692,8 +700,9 @@ def fusion_dynamic_general(graph, rs):
                     break         
                 graph.remove_edge(path[-1], pre_node)
                 if pre_node != tail_node:
-                    graph.nodes[tail_node]['phase'] = graph.nodes[pre_node]['phase'] + graph.nodes[tail_node]['phase']
-                    graph.remove_node(pre_node)
+                    if tail_con not in graph.nodes[tail_node]['phase'].keys():
+                        graph.nodes[tail_node]['phase'][tail_con] = []
+                    graph.nodes[tail_node]['phase'][tail_con] = graph.nodes[tail_node]['phase'][tail_con] + graph.nodes[pre_node]['phase'][0]
 
                 pre_node = path[-1]
                 path.remove(pre_node)
@@ -701,7 +710,9 @@ def fusion_dynamic_general(graph, rs):
                 path_con = graph[path[-1]][pre_node]['con_qubits'][path[-1]]
                 graph.remove_edge(pre_node, path[-1])
                 if pre_node != tail_node:
-                    graph.nodes[tail_node]['phase'] = graph.nodes[pre_node]['phase'] + graph.nodes[tail_node]['phase']
+                    if tail_con not in graph.nodes[tail_node]['phase'].keys():
+                        graph.nodes[tail_node]['phase'][tail_con] = []
+                    graph.nodes[tail_node]['phase'][tail_con] = graph.nodes[tail_node]['phase'][tail_con] + graph.nodes[pre_node]['phase'][0]
                     graph.remove_node(pre_node)
 
                 graph.add_edge(tail_node, path[-1])
@@ -711,7 +722,9 @@ def fusion_dynamic_general(graph, rs):
             else:
                 graph.remove_edge(pre_node, head_node)
                 if pre_node != tail_node:
-                    graph.nodes[tail_node]['phase'] = graph.nodes[pre_node]['phase'] + graph.nodes[tail_node]['phase']
+                    if tail_con not in graph.nodes[tail_node]['phase'].keys():
+                        graph.nodes[tail_node]['phase'][tail_con] = []
+                    graph.nodes[tail_node]['phase'][tail_con] = graph.nodes[tail_node]['phase'][tail_con] + graph.nodes[pre_node]['phase'][0]
                     graph.remove_node(pre_node)
                 graph.add_edge(head_node, tail_node)
                 graph[head_node][tail_node]['con_qubits'] = {}

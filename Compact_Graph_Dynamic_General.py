@@ -21,7 +21,7 @@ def create_net(alloca_nodes, graph):
     # print("GraphN,",GraphN)
     net = nx.Graph()
     for key in alloca_nodes.keys():
-        net.add_node(alloca_nodes[key], node_val = key, pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM))
+        net.add_node(alloca_nodes[key], node_val = key, phase = graph.nodes[key]['phase'], pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM))
 
     # add nodes to the net
     for i in range(NetN):
@@ -257,6 +257,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                 alloca_pos = unallocated_net_nodes[random.randint(int((len(unallocated_net_nodes) - 1) / 4), int((len(unallocated_net_nodes) - 1) * 3 / 4))]
                 # allocate the node to a random position
                 net.nodes[alloca_pos]['node_val'] = gnodes[0]
+                net.nodes[alloca_pos]['phase'] = graph.nodes[gnodes[0]]['phase']
                 alloca_nodes[gnodes[0]] = alloca_pos
                 alloca_incomplete_nodes.append(gnodes[0])
             else:
@@ -413,6 +414,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                         if index > max_used_times:
                             break
                         net.add_edge(pre_pos, untake_pos)
+                        net.nodes[untake_pos]['phase'] = graph.nodes[unalloca_node]['phase']
                         pre_pnode = search_node.path[0]
 
                         for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
@@ -487,18 +489,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                             net.add_edge(pre_node, nnode)
                             if 'con_qubits' not in net[pre_node][nnode].keys():
                                 net[pre_node][nnode]['con_qubits'] = []
-                            # if net.nodes[nnode]['node_val'] == - GraphN - 1 or (nnode in auxiliary_nodes_used_times.keys() and auxiliary_nodes_used_times[nnode] > 0):
-                            #     print("true")
-                            # elif nnode == dest_pos:
-                            #     print("false1")
-                            # elif nnode == src_pos:
-                            #     print("false2")
-                            # else:
-                            #     print("false3")
-                            # if nnode in node_set:
-                            #     print("true node")
-                            # else:
-                            #     print("false node")
+
                             if nnode == dest_pos:
                                 if pre_node == src_pos:
                                     net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: graph[alloca_node][node_dest]['con_qubits'][node_dest]})
