@@ -776,14 +776,14 @@ def fusion_dynamic_general(graph, rs):
                                                 if len(graph.nodes[neigh_node]['phase'][graph[aux_node][neigh_node]['con_qubits'][neigh_node]]) == 0:
                                                     auxiliary_nodes.append(neigh_node)
                                                     extend_flag = 1
-                                                    print("extend_flag = 1")
+                                                    # print("extend_flag = 1")
                                                 else:
                                                     neighbor_nodes_across_tail_node.append((neigh_node, graph[aux_node][neigh_node]['con_qubits'][neigh_node]))
                                             else:
                                                 neighbor_nodes_across_tail_node.append((neigh_node, 0))
                         else:
                             neighbor_nodes_across_tail_node.append((tail_node, 0))
-                        print(neighbor_nodes_across_tail_node, tail_con)
+                        # print(neighbor_nodes_across_tail_node, tail_con)
                         for neighbor_node_across_tail_node in neighbor_nodes_across_tail_node:
                             graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].remove((tail_node, pre_node))
                             graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].append((tail_node, head_node))
