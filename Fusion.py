@@ -883,13 +883,14 @@ def fusion_dynamic_general(graph, rs):
                 depth = len(graph.nodes[node]['phase'][direction])
                 for i in range(depth):
                     depend_list_x = graph.nodes[node]['depend_list_x'][direction][i].copy()
-                    depend_list_x = graph.nodes[node]['depend_list_x'][direction][i] = []
+                    # print(graph.nodes[node]['depend_list_x'][direction][i])
+                    graph.nodes[node]['depend_list_x'][direction][i] = []
                     for depend_x in depend_list_x:
                         if depend_x in pre_measure_rs_qubit_map.keys():
                             graph.nodes[node]['depend_list_x'][direction][i].append(pre_measure_rs_qubit_map[depend_x])
                         else:
                             graph.nodes[node]['depend_list_x'][direction][i].append((depend_x, 0, 0))          
-
+                    # print(graph.nodes[node]['depend_list_x'][direction][i])
     for node in graph.nodes():
         for direction in graph.nodes[node]['phase'].keys():
             if direction == 0:
@@ -905,7 +906,7 @@ def fusion_dynamic_general(graph, rs):
                 depth = len(graph.nodes[node]['phase'][direction])
                 for i in range(depth):
                     depend_list_z = graph.nodes[node]['depend_list_z'][direction][i].copy()
-                    depend_list_z = graph.nodes[node]['depend_list_z'][direction][i] = []
+                    graph.nodes[node]['depend_list_z'][direction][i] = []
                     for depend_z in depend_list_z:
                         if depend_z in pre_measure_rs_qubit_map.keys():
                             graph.nodes[node]['depend_list_z'][direction][i].append(pre_measure_rs_qubit_map[depend_z])
