@@ -5,6 +5,7 @@ import random
 import math
 
 from Generate_State import *
+from FeedForward import *
 
 ##########################################################
 #                                                        #
@@ -16,12 +17,14 @@ NetN = 25
 NetM = 25
 GraphN = 1000000
 SearchUpperBound = 20
+graph_node_net_node_map = {}
+graph_edge_net_path_map = {}
 
-def create_net(alloca_nodes, graph):
+def create_net(pre_net, alloca_nodes, graph):
     # print("GraphN,",GraphN)
     net = nx.Graph()
     for key in alloca_nodes.keys():
-        net.add_node(alloca_nodes[key], node_val = key, phase = graph.nodes[key]['phase'], pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM))
+        net.add_node(alloca_nodes[key], node_val = key, phase = graph.nodes[key]['phase'].copy(), pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM), depend_list_x = pre_net.nodes[alloca_nodes[key]]['depend_list_x'].copy(), depend_list_z = pre_net.nodes[alloca_nodes[key]]['depend_list_z'].copy(), depend_list_fusion = pre_net.nodes[alloca_nodes[key]]['depend_list_fusion'].copy())
 
     # add nodes to the net
     for i in range(NetN):
@@ -161,7 +164,7 @@ def divide_rs(rs):
         bi += (len(line) + 1) // 3
     return bi
 
-def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times):
+def one_layer_map(net, graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times, layer_index):
     auxiliary_nodes_used_times = {}
     auxiliary_nodes_used_avail_nodes = {}
     auxiliary_nodes_used_tri = []
@@ -177,7 +180,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
     # print(max_used_times_tri)
     initial_alloca_nodes = alloca_nodes.copy()
     # initial net
-    net = create_net(alloca_nodes, graph)
+    net = create_net(net, alloca_nodes, graph)
     
     failed_nodes = []
 
@@ -257,6 +260,10 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                 alloca_pos = unallocated_net_nodes[random.randint(int((len(unallocated_net_nodes) - 1) / 4), int((len(unallocated_net_nodes) - 1) * 3 / 4))]
                 # allocate the node to a random position
                 net.nodes[alloca_pos]['node_val'] = gnodes[0]
+                graph_node_net_node_map[gnodes[0]] = (layer_index, alloca_pos)
+                net.nodes[alloca_pos]['depend_list_x'] = graph.nodes[gnodes[0]]['depend_list_x'].copy()
+                net.nodes[alloca_pos]['depend_list_z'] = graph.nodes[gnodes[0]]['depend_list_z'].copy()
+                net.nodes[alloca_pos]['depend_list_fusion'] = graph.nodes[gnodes[0]]['depend_list_fusion'].copy()
                 net.nodes[alloca_pos]['phase'] = graph.nodes[gnodes[0]]['phase']
                 alloca_nodes[gnodes[0]] = alloca_pos
                 alloca_incomplete_nodes.append(gnodes[0])
@@ -405,18 +412,23 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                         count_pos_untake_list.remove(untake_pos)
                         unalloca_node = neigh_graph_nodes_unalloca[0]
                         neigh_graph_nodes_unalloca.remove(unalloca_node)
-                        net.nodes[untake_pos]['node_val'] = unalloca_node
                         pre_pos = find_pre_pos(net, search_node.path, untake_pos, MaxDegree)
                         if pre_pos == -1:
                             neigh_graph_nodes_unalloca.append(unalloca_node)
                             continue
                         index += 1
                         if index > max_used_times:
+                            neigh_graph_nodes_unalloca.append(unalloca_node)
                             break
                         net.add_edge(pre_pos, untake_pos)
+                        net.nodes[untake_pos]['node_val'] = unalloca_node
+                        graph_node_net_node_map[unalloca_node] = (layer_index, untake_pos)
+                        net.nodes[untake_pos]['depend_list_x'] = graph.nodes[unalloca_node]['depend_list_x'].copy()
+                        net.nodes[untake_pos]['depend_list_z'] = graph.nodes[unalloca_node]['depend_list_z'].copy()
+                        net.nodes[untake_pos]['depend_list_fusion'] = graph.nodes[unalloca_node]['depend_list_fusion'].copy()
                         net.nodes[untake_pos]['phase'] = graph.nodes[unalloca_node]['phase']
                         pre_pnode = search_node.path[0]
-
+                        edge_to_path = []
                         for pnode in search_node.path[1: search_node.path.index(pre_pos) + 1]:
                             if pnode in auxiliary_nodes_used_times.keys():
                                 auxiliary_nodes_used_times[pnode] -= 1
@@ -427,18 +439,24 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                                 net[pre_pnode][pnode]['con_qubits'] = []
                             if pre_pnode == search_node.path[0]:
                                 net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], pnode: 3 * auxiliary_nodes_used_times[pnode]})
+                                edge_to_path.append({(layer_index, pre_pnode): graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], (layer_index, pnode): 3 * auxiliary_nodes_used_times[pnode]})
                             else:
                                 net[pre_pnode][pnode]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], pnode: 3 * auxiliary_nodes_used_times[pnode]})
+                                edge_to_path.append({(layer_index, pre_pnode): 1 + 3 * auxiliary_nodes_used_times[pre_pnode], (layer_index, pnode): 3 * auxiliary_nodes_used_times[pnode]})
 
                             pre_pnode = pnode
 
                         net[pre_pos][untake_pos]['con_qubits'] = []
                         if pre_pos != alloca_nodes[alloca_node]:
                             net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: 1 + 3 * auxiliary_nodes_used_times[pre_pnode], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                            edge_to_path.append({(layer_index, pre_pnode): 1 + 3 * auxiliary_nodes_used_times[pre_pnode], (layer_index, untake_pos): graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
                         else:
                             net[pre_pos][untake_pos]['con_qubits'].append({pre_pnode: graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], untake_pos: graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
+                            edge_to_path.append({(layer_index, pre_pnode): graph[alloca_node][unalloca_node]['con_qubits'][alloca_node], (layer_index, untake_pos): graph[alloca_node][unalloca_node]['con_qubits'][unalloca_node]})
                         alloca_nodes[unalloca_node] = untake_pos
                         graph.remove_edge(alloca_node, unalloca_node)
+                        graph_edge_net_path_map[(alloca_node, unalloca_node)] = edge_to_path
+                        graph_edge_net_path_map[(unalloca_node, alloca_node)] = edge_to_path
                         if len(list(graph.neighbors(unalloca_node))):
                             alloca_incomplete_nodes.append(unalloca_node)
                         else:
@@ -485,6 +503,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                         path_nodes = shortest_path[1:]
                         pre_node = src_pos
                         pre_node_kind = 0
+                        edge_to_path = []
                         for nnode in path_nodes:
                             net.add_edge(pre_node, nnode)
                             if 'con_qubits' not in net[pre_node][nnode].keys():
@@ -492,15 +511,18 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
 
                             if nnode == dest_pos:
                                 if pre_node == src_pos:
+                                    edge_to_path.append({(layer_index, pre_node): graph[alloca_node][node_dest]['con_qubits'][alloca_node], (layer_index, nnode): graph[alloca_node][node_dest]['con_qubits'][node_dest]})
                                     net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: graph[alloca_node][node_dest]['con_qubits'][node_dest]})
                                 else:
                                     if pre_node_kind == 1:
+                                        edge_to_path.append({(layer_index, pre_node): MaxDegree - 1, (layer_index, nnode): graph[alloca_node][node_dest]['con_qubits'][node_dest]})
                                         net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: graph[alloca_node][node_dest]['con_qubits'][node_dest]})
                                         # if MaxDegree - 1 in auxiliary_nodes_used_avail_nodes[pre_node]:
                                         #     auxiliary_nodes_used_avail_nodes[pre_node].remove(MaxDegree - 1)
                                         # else:
                                         #     print("mapping error14")  
                                     else:
+                                        edge_to_path.append({(layer_index, pre_node): 1 + 3 * auxiliary_nodes_used_times[pre_node], (layer_index, nnode): graph[alloca_node][node_dest]['con_qubits'][node_dest]})
                                         net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: graph[alloca_node][node_dest]['con_qubits'][node_dest]})
                                         # if 1 + 3 * auxiliary_nodes_used_times[pre_node] in auxiliary_nodes_used_avail_nodes[pre_node]:
                                         #     auxiliary_nodes_used_avail_nodes[pre_node].remove(1 + 3 * auxiliary_nodes_used_times[pre_node])
@@ -512,6 +534,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                                 else:
                                     auxiliary_nodes_used_times[nnode] -= 1
                                 if pre_node == src_pos:
+                                    edge_to_path.append({(layer_index, pre_node): graph[alloca_node][node_dest]['con_qubits'][alloca_node], (layer_index, nnode): 3 * auxiliary_nodes_used_times[nnode]})
                                     net[pre_node][nnode]['con_qubits'].append({pre_node: graph[alloca_node][node_dest]['con_qubits'][alloca_node], nnode: 3 * auxiliary_nodes_used_times[nnode]})
                                     # if  3 * auxiliary_nodes_used_times[nnode] in auxiliary_nodes_used_avail_nodes[nnode]:
                                     #     auxiliary_nodes_used_avail_nodes[nnode].remove( 3 * auxiliary_nodes_used_times[nnode])
@@ -519,9 +542,11 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                                     #     print("mapping error21")
                                 else:
                                     if pre_node_kind == 1:
+                                        edge_to_path.append({(layer_index, pre_node): MaxDegree - 1, (layer_index, nnode): 3 * auxiliary_nodes_used_times[nnode]})
                                         net[pre_node][nnode]['con_qubits'].append({pre_node: MaxDegree - 1, nnode: 3 * auxiliary_nodes_used_times[nnode]})
 
                                     else:
+                                        edge_to_path.append({(layer_index, pre_node): 1 + 3 * auxiliary_nodes_used_times[pre_node], (layer_index, nnode): 3 * auxiliary_nodes_used_times[nnode]})
                                         net[pre_node][nnode]['con_qubits'].append({pre_node: 1 + 3 * auxiliary_nodes_used_times[pre_node], nnode: 3 * auxiliary_nodes_used_times[nnode]})
 
                                 pre_node_kind = 0
@@ -530,6 +555,8 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
 
                             pre_node = nnode
                         graph.remove_edge(alloca_node, node_dest)
+                        graph_edge_net_path_map[(alloca_node, node_dest)] = edge_to_path
+                        graph_edge_net_path_map[(node_dest, alloca_node)] = edge_to_path
                         if len(list(graph.neighbors(node_dest))) == 0:
                             graph.remove_node(node_dest)  
                             if node_dest in alloca_incomplete_nodes:
@@ -561,6 +588,8 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
 
 
 def compact_graph_dynamic_general(fgraph, dgraph, rs):
+    # for edge in fgraph.edges():
+    #     print(edge)
     max_used_times = divide_rs(rs)
     # get fgraph information
     graph = fgraph.copy()
@@ -580,6 +609,8 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
         for edge in graph.edges():
             if edge[0] in alloca_nodes_cache.keys() and edge[1] in alloca_nodes_cache.keys() and alloca_nodes_cache[edge[0]] == alloca_nodes_cache[edge[1]]:
                 exit_flag = exit_flag
+                graph_edge_net_path_map[(edge[0], edge[1])] = [{(layer_index, alloca_nodes_cache[edge[0]]): graph[edge[0]][edge[1]]['con_qubits'][edge[0]], (layer_index, alloca_nodes_cache[edge[1]]): graph[edge[1]][edge[0]]['con_qubits'][edge[1]]}]
+                graph_edge_net_path_map[(edge[1], edge[0])] = [{(layer_index, alloca_nodes_cache[edge[0]]): graph[edge[0]][edge[1]]['con_qubits'][edge[0]], (layer_index, alloca_nodes_cache[edge[1]]): graph[edge[1]][edge[0]]['con_qubits'][edge[1]]}]
             else:
                 exit_flag = 0
                 break
@@ -613,7 +644,9 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
                     index += 1                  
 
         # map and route current layer nodes 
-        net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times)  
+        if layer_index == 0:
+            net = nx.Graph()
+        net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(net, graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times, layer_index)  
         for gnode in graph.nodes():
             if len(list(graph.neighbors(gnode))) == 0:
                 graph.remove_node(gnode)
@@ -648,7 +681,7 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
             nx.draw(graph)
             break
         pre_graph_nodes = len(list(graph.nodes()))
-
+    net_list = feed_forward_transformation(net_list, fgraph, graph_node_net_node_map, graph_edge_net_path_map)
     print(GraphN, "nodes")
     print(layer_index, "layers") 
     return net_list

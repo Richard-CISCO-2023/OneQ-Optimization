@@ -599,7 +599,6 @@ def fusion_dynamic_general(graph, rs):
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
                         graph.add_edge(pre_node, neigh_nnode)
-                        graph.nodes[nnode]['depend_list_fusion'][0] += public_path
                         graph.nodes[nnode]['depend_list_fusion'][0].append((pre_node, neigh_nnode))
                         graph.nodes[rneighbor_map[neigh_nnode]]['depend_list_fusion'][0].append((neigh_nnode, pre_node))
                         graph.nodes[rneighbor_map[neigh_nnode]]['depend_list_fusion'][0] += public_path_reverse
@@ -618,8 +617,8 @@ def fusion_dynamic_general(graph, rs):
                         graph.nodes[nodes_size]['phase'][i + 1] = []
                     graph.nodes[nodes_size]['parent'] = graph.nodes[pre_node]['parent']
                     graph.add_edge(pre_node, nodes_size)
-                    public_path.append((nnode, nodes_size))
-                    public_path_reverse = [(nodes_size, nnode)] + public_path_reverse
+                    public_path.append((pre_node, nodes_size))
+                    public_path_reverse = [(nodes_size, pre_node)] + public_path_reverse
                     graph[pre_node][nodes_size]['con_qubits'] = {}
                     graph[pre_node][nodes_size]['con_qubits'][pre_node] = 1
                     graph[pre_node][nodes_size]['con_qubits'][nodes_size] = 0
@@ -633,7 +632,6 @@ def fusion_dynamic_general(graph, rs):
                         neigh_nnode = neigh_nnodes[0]
                         neigh_nnodes.remove(neigh_nnode)
                         graph.add_edge(pre_node, neigh_nnode)  
-                        graph.nodes[nnode]['depend_list_fusion'][0] += public_path
                         graph.nodes[nnode]['depend_list_fusion'][0].append((pre_node, neigh_nnode))
                         graph.nodes[rneighbor_map[neigh_nnode]]['depend_list_fusion'][0].append((neigh_nnode, pre_node))
                         graph.nodes[rneighbor_map[neigh_nnode]]['depend_list_fusion'][0] += public_path_reverse
@@ -641,7 +639,7 @@ def fusion_dynamic_general(graph, rs):
                         graph[pre_node][neigh_nnode]['con_qubits'][pre_node] = 1
                         graph[pre_node][neigh_nnode]['con_qubits'][neigh_nnode] = neighbor_con_qubits[neigh_nnode]
                         fusions += 1   
-  
+            graph.nodes[nnode]['depend_list_fusion'][0] += public_path
     for nnode in graph.nodes():
         graph.nodes[nnode]['avail_qubits'] = []
         for i in range(1, max_degree + 1):
@@ -666,6 +664,21 @@ def fusion_dynamic_general(graph, rs):
                 graph.nodes[edge[1]]['avail_qubits'].remove(new_qubit)
                 graph[edge[0]][edge[1]]['con_qubits'][edge[1]] = new_qubit
     
+
+    # for nnode in graph.nodes():
+    #     if nnode not in added_nodes:
+    #         for fusion_pair in graph.nodes[nnode]['depend_list_fusion'][0]:
+    #             if fusion_pair not in graph.edges():
+    #                 print("fusion list error")
+    #             else:
+    #                 print("fusion list correct")
+
+    for nnode in graph.nodes():
+        for direction in graph.nodes[nnode]['depend_list_fusion'].keys():
+            for fusion_pair in graph.nodes[nnode]['depend_list_fusion'][direction]:
+                if fusion_pair not in graph.edges():
+                    print("fusion list error1")
+                    print(fusion_pair)
     # rewrite special fusion
     pre_measure_rs_qubit_map = {}
     all_nodes = list(graph.nodes()).copy()
@@ -707,6 +720,53 @@ def fusion_dynamic_general(graph, rs):
         head_con = graph[head_node][path[0]]['con_qubits'][head_node]
         tail_con = graph[path[-1]][tail_node]['con_qubits'][tail_node]    
 
+        neighbor_nodes_across_tail_node = []
+        auxiliary_nodes = [tail_node]
+        if tail_node in added_nodes:
+            extend_flag = 1
+            while extend_flag:
+                extend_flag = 0
+                auxiliary_nodes_copy = auxiliary_nodes.copy()
+                for aux_node in auxiliary_nodes_copy:
+                    auxiliary_nodes.remove(aux_node)
+                    for neigh_node in graph.neighbors(aux_node):
+                        if graph[aux_node][neigh_node]['con_qubits'][aux_node] == 0:
+                            if neigh_node in added_nodes:
+                                if len(graph.nodes[neigh_node]['phase'][graph[aux_node][neigh_node]['con_qubits'][neigh_node]]) == 0:
+                                    auxiliary_nodes.append(neigh_node)
+                                    extend_flag = 1
+                                    # print("extend_flag = 1")
+                                else:
+                                    neighbor_nodes_across_tail_node.append((neigh_node, graph[aux_node][neigh_node]['con_qubits'][neigh_node]))
+                            else:
+                                neighbor_nodes_across_tail_node.append((neigh_node, 0))
+        else:
+            neighbor_nodes_across_tail_node.append((tail_node, 0))
+
+        neighbor_nodes_across_head_node = []
+        auxiliary_nodes = [head_node]
+        if head_node in added_nodes:
+            extend_flag = 1
+            while extend_flag:
+                extend_flag = 0
+                auxiliary_nodes_copy = auxiliary_nodes.copy()
+                for aux_node in auxiliary_nodes_copy:
+                    auxiliary_nodes.remove(aux_node)
+                    for neigh_node in graph.neighbors(aux_node):
+                        if graph[aux_node][neigh_node]['con_qubits'][aux_node] == 0:
+                            if neigh_node in added_nodes:
+                                if len(graph.nodes[neigh_node]['phase'][graph[aux_node][neigh_node]['con_qubits'][neigh_node]]) == 0:
+                                    auxiliary_nodes.append(neigh_node)
+                                    extend_flag = 1
+                                else:
+                                    neighbor_nodes_across_head_node.append((neigh_node, graph[aux_node][neigh_node]['con_qubits'][neigh_node]))
+                            else:
+                                neighbor_nodes_across_head_node.append((neigh_node, 0))
+        else:
+            neighbor_nodes_across_head_node.append((head_node, 0))
+    
+
+    
         if len(path):
             if head_con:
                 head_depth = depths[head_con - 1] - 2
@@ -716,6 +776,7 @@ def fusion_dynamic_general(graph, rs):
                     graph.nodes[head_node]['depend_list_fusion'][head_con] = []   
                 pre_pre_node = -1
                 pre_node = head_node
+                head_con_node = path[0]
                 for i in range(head_depth):
                     if len(path) == 0:
                         break     
@@ -745,8 +806,12 @@ def fusion_dynamic_general(graph, rs):
                     path_con = graph[pre_node][path[0]]['con_qubits'][path[0]]
                     graph.remove_edge(pre_node, path[0])
                     if head_depth:
+                        for neighbor_node_across_head_node in neighbor_nodes_across_head_node:
+                            graph.nodes[neighbor_node_across_head_node[0]]['depend_list_fusion'][neighbor_node_across_head_node[1]].remove((head_node, head_con_node))
+                            graph.nodes[neighbor_node_across_head_node[0]]['depend_list_fusion'][neighbor_node_across_head_node[1]].append((head_node, path[0]))
                         graph.nodes[path[0]]['depend_list_fusion'][0].remove((path[0], pre_node))
                         graph.nodes[path[0]]['depend_list_fusion'][0].append((path[0], head_node))
+                        
                     if pre_node != head_node:
                         if head_con not in graph.nodes[head_node]['phase'].keys():
                             graph.nodes[head_node]['phase'][head_con] = []
@@ -760,29 +825,9 @@ def fusion_dynamic_general(graph, rs):
                 else:
                     graph.remove_edge(pre_node, tail_node)
                     if head_depth:
-
-                        neighbor_nodes_across_tail_node = []
-                        auxiliary_nodes = [tail_node]
-                        if tail_node in added_nodes:
-                            extend_flag = 1
-                            while extend_flag:
-                                extend_flag = 0
-                                auxiliary_nodes_copy = auxiliary_nodes.copy()
-                                for aux_node in auxiliary_nodes_copy:
-                                    auxiliary_nodes.remove(aux_node)
-                                    for neigh_node in graph.neighbors(aux_node):
-                                        if graph[aux_node][neigh_node]['con_qubits'][aux_node] == 0:
-                                            if neigh_node in added_nodes:
-                                                if len(graph.nodes[neigh_node]['phase'][graph[aux_node][neigh_node]['con_qubits'][neigh_node]]) == 0:
-                                                    auxiliary_nodes.append(neigh_node)
-                                                    extend_flag = 1
-                                                    # print("extend_flag = 1")
-                                                else:
-                                                    neighbor_nodes_across_tail_node.append((neigh_node, graph[aux_node][neigh_node]['con_qubits'][neigh_node]))
-                                            else:
-                                                neighbor_nodes_across_tail_node.append((neigh_node, 0))
-                        else:
-                            neighbor_nodes_across_tail_node.append((tail_node, 0))
+                        for neighbor_node_across_head_node in neighbor_nodes_across_head_node:
+                            graph.nodes[neighbor_node_across_head_node[0]]['depend_list_fusion'][neighbor_node_across_head_node[1]].remove((head_node, head_con_node))
+                            graph.nodes[neighbor_node_across_head_node[0]]['depend_list_fusion'][neighbor_node_across_head_node[1]].append((head_node, tail_node))
                         # print(neighbor_nodes_across_tail_node, tail_con)
                         for neighbor_node_across_tail_node in neighbor_nodes_across_tail_node:
                             graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].remove((tail_node, pre_node))
@@ -808,6 +853,7 @@ def fusion_dynamic_general(graph, rs):
                 tail_depth = depths[tail_con - 1] - 2
                 pre_node = tail_node
                 pre_pre_node = -1
+                tail_con_node = path[-1]
                 for i in range(tail_depth):
                     if len(path) == 0:
                         break         
@@ -836,6 +882,9 @@ def fusion_dynamic_general(graph, rs):
                     if tail_depth:
                         graph.nodes[path[-1]]['depend_list_fusion'][0].remove((path[-1], pre_node))
                         graph.nodes[path[-1]]['depend_list_fusion'][0].append((path[-1], tail_node))
+                        for neighbor_node_across_tail_node in neighbor_nodes_across_tail_node:
+                            graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].remove((tail_node, tail_con_node))
+                            graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].append((tail_node, path[-1]))
                     if pre_node != tail_node:
                         if tail_con not in graph.nodes[tail_node]['phase'].keys():
                             graph.nodes[tail_node]['phase'][tail_con] = []
@@ -850,30 +899,12 @@ def fusion_dynamic_general(graph, rs):
                     graph.remove_edge(pre_node, head_node)
                     if tail_depth:
                         if len(graph.nodes[head_node]['phase'][head_con]):
-                            graph.nodes[head_node]['depend_list_fusion'][head_con].remove(head_node, pre_node)
-                            graph.nodes[head_node]['depend_list_fusion'][head_con].append(head_node, tail_node)
+                            graph.nodes[head_node]['depend_list_fusion'][head_con].remove((head_node, pre_node))
+                            graph.nodes[head_node]['depend_list_fusion'][head_con].append((head_node, tail_node))
                         else:
-                            neighbor_nodes_across_head_node = []
-                            auxiliary_nodes = [head_node]
-                            if head_node in added_nodes:
-                                extend_flag = 1
-                                while extend_flag:
-                                    extend_flag = 0
-                                    auxiliary_nodes_copy = auxiliary_nodes.copy()
-                                    for aux_node in auxiliary_nodes_copy:
-                                        auxiliary_nodes.remove(aux_node)
-                                        for neigh_node in graph.neighbors(aux_node):
-                                            if graph[aux_node][neigh_node]['con_qubits'][aux_node] == 0:
-                                                if neigh_node in added_nodes:
-                                                    if len(graph.nodes[neigh_node]['phase'][graph[aux_node][neigh_node]['con_qubits'][neigh_node]]) == 0:
-                                                        auxiliary_nodes.append(neigh_node)
-                                                        extend_flag = 1
-                                                    else:
-                                                        neighbor_nodes_across_head_node.append((neigh_node, graph[aux_node][neigh_node]['con_qubits'][neigh_node]))
-                                                else:
-                                                    neighbor_nodes_across_head_node.append((neigh_node, 0))
-                            else:
-                                neighbor_nodes_across_head_node.append((head_node, 0))
+                            for neighbor_node_across_tail_node in neighbor_nodes_across_tail_node:
+                                graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].remove((tail_node, tail_con_node))
+                                graph.nodes[neighbor_node_across_tail_node[0]]['depend_list_fusion'][neighbor_node_across_tail_node[1]].append((tail_node, head_node))
                             for neighbor_node_across_head_node in neighbor_nodes_across_head_node:
                                 graph.nodes[neighbor_node_across_head_node[0]]['depend_list_fusion'][neighbor_node_across_head_node[1]].remove((head_node, pre_node))
                                 graph.nodes[neighbor_node_across_head_node[0]]['depend_list_fusion'][neighbor_node_across_head_node[1]].append((head_node, tail_node))
@@ -942,6 +973,13 @@ def fusion_dynamic_general(graph, rs):
 
     # sepcial end
 
+    for nnode in graph.nodes():
+        for direction in graph.nodes[nnode]['depend_list_fusion'].keys():
+            for fusion_pair in graph.nodes[nnode]['depend_list_fusion'][direction]:
+                if fusion_pair not in graph.edges():
+                    print("fusion list error2")
+                    print(fusion_pair)
+    
     for nnode in graph.nodes():
         graph.nodes[nnode]['avail_qubits_vali'] = []
         for i in range(max_degree + 1):
