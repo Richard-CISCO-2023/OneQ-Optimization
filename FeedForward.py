@@ -27,30 +27,35 @@ def feed_forward_transformation(net_list, fgraph,  graph_node_to_net, graph_edge
                                     print("error")
                                 depend_list_fusion += graph_edge_to_path[fusion_pair]
                             net_list[i].nodes[nnode]['depend_list_fusion'][direction][depth] = depend_list_fusion.copy()
+                            print("depend_list_fusion", net_list[i].nodes[nnode]['depend_list_fusion'][direction][depth])
 
                         if direction == 0:
                             x_set = list(net_list[i].nodes[nnode]["depend_list_x"][0]).copy()
                             net_list[i].nodes[nnode]["depend_list_x"][0] = []
                             for depend_x in x_set:
                                 net_list[i].nodes[nnode]["depend_list_x"][0].append((graph_node_to_net[depend_x[0]], depend_x[1], depend_x[2]))
+                            print("depend_list_x", net_list[i].nodes[nnode]['depend_list_x'][0])
                         else:    
                             for depth in range(len(net_list[i].nodes[nnode]['phase'][direction])):
                                 x_set = list(net_list[i].nodes[nnode]["depend_list_x"][direction][depth]).copy()
                                 net_list[i].nodes[nnode]["depend_list_x"][direction][depth] = []
                                 for depend_x in x_set:
                                     net_list[i].nodes[nnode]["depend_list_x"][direction][depth].append((graph_node_to_net[depend_x[0]], depend_x[1], depend_x[2]))
+                                print("depend_list_x", net_list[i].nodes[nnode]['depend_list_x'][direction][depth])
 
                         if direction == 0:
                             z_set = list(net_list[i].nodes[nnode]["depend_list_z"][0]).copy()
                             net_list[i].nodes[nnode]["depend_list_z"][0] = []
                             for depend_z in z_set:
                                 net_list[i].nodes[nnode]["depend_list_z"][0].append((graph_node_to_net[depend_z[0]], depend_z[1], depend_z[2]))
+                            print("depend_list_z", net_list[i].nodes[nnode]['depend_list_z'][0])
                         else:    
                             for depth in range(len(net_list[i].nodes[nnode]['phase'][direction])):
                                 z_set = list(net_list[i].nodes[nnode]["depend_list_z"][direction][depth]).copy()
                                 net_list[i].nodes[nnode]["depend_list_z"][direction][depth] = []
                                 for depend_z in z_set:
                                     net_list[i].nodes[nnode]["depend_list_z"][direction][depth].append((graph_node_to_net[depend_z[0]], depend_z[1], depend_z[2]))
+                                print("depend_list_z", net_list[i].nodes[nnode]['depend_list_z'][direction][depth])
                 # else:
                     # print(pre_node_finished)
     return net_list

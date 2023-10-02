@@ -24,7 +24,7 @@ def create_net(pre_net, alloca_nodes, graph):
     # print("GraphN,",GraphN)
     net = nx.Graph()
     for key in alloca_nodes.keys():
-        net.add_node(alloca_nodes[key], node_val = key, phase = graph.nodes[key]['phase'].copy(), pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM), depend_list_x = pre_net.nodes[alloca_nodes[key]]['depend_list_x'].copy(), depend_list_z = pre_net.nodes[alloca_nodes[key]]['depend_list_z'].copy(), depend_list_fusion = pre_net.nodes[alloca_nodes[key]]['depend_list_fusion'].copy())
+        net.add_node(alloca_nodes[key], node_val = key, phase = graph.nodes[key]['phase'].copy(), pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM), depend_list_x = graph.nodes[key]['depend_list_x'].copy(), depend_list_z = graph.nodes[key]['depend_list_z'].copy(), depend_list_fusion = graph.nodes[key]['depend_list_fusion'].copy())
 
     # add nodes to the net
     for i in range(NetN):
@@ -180,7 +180,7 @@ def one_layer_map(net, graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used
     # print(max_used_times_tri)
     initial_alloca_nodes = alloca_nodes.copy()
     # initial net
-    net = create_net(net, alloca_nodes, graph)
+    net = create_net(net.copy(), alloca_nodes, graph)
     
     failed_nodes = []
 
