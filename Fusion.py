@@ -754,7 +754,7 @@ def fusion_dynamic_general(graph, rs):
                     pre_node = path[0]
                     graph_node_map[pre_node] = (head_node, head_con, i)
                     path.remove(pre_node)
-                    graph.nodes[head_node]['depend_list_fusion'][head_con][i] = graph.nodes[pre_node]['depend_list_fusion'][0][0].copy()
+                    graph.nodes[head_node]['depend_list_fusion'][head_con][i] = list(graph.nodes[pre_node]['depend_list_fusion'][0][0]).copy()
                     graph.nodes[head_node]['depend_list_fusion'][head_con][i].remove((pre_node, pre_pre_node))
                     if len(path):
                         graph.nodes[head_node]['depend_list_fusion'][head_con][i].remove((pre_node, path[0]))
@@ -777,8 +777,8 @@ def fusion_dynamic_general(graph, rs):
                                         neigh_dir = graph[aux_node][neigh_node]['con_qubits'][neigh_node]
                                         neigh_depth = len(graph.nodes[neigh_node]['phase'][neigh_dir])
                                         if neigh_depth == 0:
-                                            if neigh_depth in added_nodes:
-                                                auxiliary_nodes.append(aux_node)
+                                            if neigh_node in added_nodes:
+                                                auxiliary_nodes.append(neigh_node)
                                                 extend_flag = 1
                                             else:
                                                 nodes_across_head_node.append((neigh_node, 0, 0))
@@ -884,8 +884,8 @@ def fusion_dynamic_general(graph, rs):
                                         neigh_dir = graph[aux_node][neigh_node]['con_qubits'][neigh_node]
                                         neigh_depth = len(graph.nodes[neigh_node]['phase'][neigh_dir])
                                         if neigh_depth == 0:
-                                            if neigh_depth in added_nodes:
-                                                auxiliary_nodes.append(aux_node)
+                                            if neigh_node in added_nodes:
+                                                auxiliary_nodes.append(neigh_node)
                                                 extend_flag = 1
                                             else:
                                                 nodes_across_tail_node.append((neigh_node, 0, 0))
