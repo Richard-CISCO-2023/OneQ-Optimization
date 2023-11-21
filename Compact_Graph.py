@@ -134,7 +134,7 @@ def one_layer_map(graph, alloca_nodes, cur_layer, alloca_nodes_cache, MaxDegree)
         # get the subgraph to be allocated
         cur_layer_graph = graph.subgraph(cur_layer_nodes)
 
-        # get connected subgraph list
+        # get c                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               onnected subgraph list
         subgraphs = list(nx.connected_components(cur_layer_graph))
         failed_nodes = []
         # begin mapping and routing for each subgraph

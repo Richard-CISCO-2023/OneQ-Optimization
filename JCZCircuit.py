@@ -27,9 +27,11 @@ class JCZCircuit:
     def add_J(self, qubit, phase):
         self.gates.append(JGate(qubit, phase))
 
+    # uni 
     def add_H(self, qubit):
         self.gates.append(JGate(qubit, 0))
 
+    # uni 
     def add_X(self, qubit):
         self.gates.append(JGate(qubit, 0))
         self.gates.append(JGate(qubit, 4))
@@ -38,10 +40,12 @@ class JCZCircuit:
         self.gates.append(JGate(qubit, 4))
         self.gates.append(JGate(qubit, 0))
     
+    # uni 
     def add_T(self, qubit):
         self.gates.append(JGate(qubit, 1))
         self.gates.append(JGate(qubit, 0))
     
+    # uni
     def add_S(self, qubit):
         self.gates.append(JGate(qubit, 2))
         self.gates.append(JGate(qubit, 0))
@@ -53,6 +57,7 @@ class JCZCircuit:
     def add_CZ(self, qubit1, qubit2):
         self.gates.append(CZGate(qubit1, qubit2))
 
+    # uni
     def add_CNOT(self, qubit1, qubit2):
         self.add_H(qubit2)
         self.add_CZ(qubit1, qubit2)
