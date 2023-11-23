@@ -50,7 +50,6 @@ def save_net(pre_graph, net, alloca_pos, layer_index , NxM):
             colors.append('green')
             labels[nnode] = net.nodes[nnode]['node_val']
             continue
-        
         # unallocated node, show gray
         if net.nodes[nnode]['node_val'] == - GraphN - 1:
             colors.append('gray')
@@ -73,7 +72,7 @@ def save_net(pre_graph, net, alloca_pos, layer_index , NxM):
     # save image     
     plt.savefig("layers/layer" + str(layer_index) + ".png")
     plt.show()
-    return
+    return net, pos, colors 
 
 def count_pos_untake(net, pos, NxM):
     index = []
@@ -574,24 +573,18 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
 def compact_graph_dynamic_general(fgraph, dgraph, rs, NxM):
     NetN , NetM = NxM
 
-    nodes = sorted(rs.nodes())
-    grid_side = int(len(nodes) ** 0.5)  # Determine the size of the grid
-    pos = {node: (node % grid_side, node // grid_side) for node in nodes}
-    nx.draw(rs,  pos=pos)
-    plt.title(f'RS generated state')
-    plt.savefig(f"saved_files/rs_qubit_gs")
-    
-
     max_used_times = divide_rs(rs)
     # get fgraph information
     graph = fgraph.copy()
     GraphN = len(list(graph.nodes()))
     # collect mapping nets
     net_list = []
+    net_pos_list = []
+    net_colors_list = []
 
     # identify the mapping layer number
     layer_index = 0
-    print("HERE2")
+    # print("HERE2") DELETE
     alloca_nodes_cache = {}
     alloca_nodes = {}
     pre_graph_nodes = len(list(graph.nodes()))
@@ -632,7 +625,7 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs, NxM):
                     del alloca_nodes_cache[kkey]  
                     keys.remove(kkey)
                     index += 1                  
-        print("HERE3")
+        # print("HERE3") DELETE
         # map and route current layer nodes 
         net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times, NxM)  
         
@@ -650,9 +643,6 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs, NxM):
         for gnode in alloca_nodes_cache.keys():
             if len(list(graph.neighbors(gnode))) == 0:
                 del alloca_nodes_cache[gnode]
-        
-        nx.draw(dgraph)
-        plt.savefig("saved_files/dgraph")
 
         net_list.append(net)
         alloca_values = []
@@ -667,25 +657,20 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs, NxM):
         #pos = {node: (node % grid_side, node // grid_side) for node in nodes}
 
         # show the mapping net and save it
-        print("HERE5")
+        # print("HERE5") DELETE
         
         # Assuming pre_graph is your graph object
         # Apply a force-directed layout algorithm
+        plt.figure()
         pos = nx.spring_layout(pre_graph, iterations=50)
-
-        # Draw nodes with a specified size and alpha transparency
-        nx.draw_networkx_nodes(pre_graph, pos, node_size=50, alpha=0.7)
-
-        # Draw edges with reduced alpha and width
-        nx.draw_networkx_edges(pre_graph, pos, alpha=0.1, width=0.5)
-        
-        
         nx.draw(pre_graph,  pos=pos, node_size= 10)
         plt.title(f'Pre_graph visual')
         plt.savefig(f"saved_files/pre_graph_qubit_gs")
         
-        save_net(pre_graph, net, alloca_values, layer_index ,NxM=NxM)
-        print("HERE5")
+        net, net_pos, net_colors = save_net(pre_graph, net, alloca_values, layer_index ,NxM=NxM)
+        net_pos_list.append(net_pos)
+        net_colors_list.append(net_colors)
+        # print("HERE5") DELETE
         layer_index += 1  
         print(len(list(graph.nodes())))
         if len(list(graph.nodes())) == pre_graph_nodes:
@@ -698,6 +683,7 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs, NxM):
             break
         pre_graph_nodes = len(list(graph.nodes()))
 
+
     print(GraphN, "nodes")
     print(layer_index, "layers") 
-    return net_list
+    return net_list , net_pos_list, net_colors_list

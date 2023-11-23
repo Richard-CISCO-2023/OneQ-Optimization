@@ -9,6 +9,7 @@ def show_circuit(qubits, gates_list):
             c.add_gate("XPhase", gate.qubit, phase = gate.phase / 4)
         else:
             c.add_gate("CZ", gate.qubit1, gate.qubit2)
+    print('--------------- \nCurrently generate_graph_state, Below is JCZ conversion in pyZX graph')
     zx.draw(c)
     return
 
@@ -18,6 +19,18 @@ def add_undirected_edge(graph, node1, node2):
     return graph
 
 def turn_to_graph(gates_list, qubits):
+    """
+    PURPOSE 
+    
+    USED was used in Main() but is commented out
+    -----------------------------------------
+    INPUT
+    gates_list = 
+    qubits =
+    -----------------------------------------
+    OUTPUT
+    graph = networkx graph object
+    """
     node_index = 1
     pos_x = 0
     pre_nodes = {}
@@ -91,9 +104,17 @@ def turn_to_graph(gates_list, qubits):
 
     return graph
 
+import matplotlib.pyplot as plt
 def generate_graph_state(gates_list, qubits):
     show_circuit(qubits, gates_list)
-    graph= turn_to_graph(gates_list, qubits)
+
+    graph = turn_to_graph(gates_list, qubits)
+    print('-------------- \nBelow is the JCZ pyZX in graph form')
+    plt.figure()
+    nx.draw(graph)
+    plt.title('turnToGraph ---> generate graph state')
+    plt.savefig(f"saved_files/turnToGraph")
+    plt.show() 
     colors = []
     input_nodes = []
     output_nodes = []
@@ -110,8 +131,11 @@ def generate_graph_state(gates_list, qubits):
             output_nodes.append(nnode)
         else:
             colors.append('gray')
-    # labels = {node: str(node) for node in graph.nodes()}
-    # node_pos = nx.get_node_attributes(graph, 'pos')
-
-    # nx.draw(graph, pos = node_pos, node_color = colors, node_size = 10, labels = labels,font_size = 8)
+    labels = {node: str(node) for node in graph.nodes()}
+    node_pos = nx.get_node_attributes(graph, 'pos')
+    print('-------------- \nBelow is the JCZ pyZX after additional details have been assigned')
+    plt.figure()
+    nx.draw(graph, pos = node_pos, node_color = colors, node_size = 30, labels = labels,font_size = 14)
+    plt.title('Generate graph state output')
+    plt.show() 
     return graph, input_nodes, colors

@@ -514,7 +514,8 @@ def get_basic_rs(rs):
 def fusion_dynamic_general(graph, rs):
     depths, max_degree, max_length = get_basic_rs(rs)
     if max_degree < 2:
-        return -1
+        print ("MAX DEGREE WAS LESS THAN 2")
+        return -1 
     # print(depths, max_degree, max_length)
     fusions = 0
     added_nodes =  []
