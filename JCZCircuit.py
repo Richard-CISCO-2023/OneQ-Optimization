@@ -69,4 +69,71 @@ class JCZCircuit:
         self.add_CNOT(qubit1,qubit2)
         self.add_Rz(qubit2, phase)
         self.add_CNOT(qubit1,qubit2) 
-    
+    #-------------#
+    #New additions#
+    #-------------#
+    def add_Rx(self, qubit, phase):
+        self.add_H(qubit)
+        self.add_Rz(qubit, phase)
+        self.add_H(qubit)
+
+import pyzx as zx
+def pyZX_to_JCZ(pyZX_circuit, nqubit):
+    # Initalise the JCZ circuit
+    qubits = []
+    for i in range(nqubit):
+        qubits.append(i)
+    jcz_circuit = JCZCircuit()
+    jcz_circuit.qubits_init(qubits)
+
+    # Going through supported gate types
+    for gate in pyZX_circuit.gates:
+        if gate.name == "HAD":
+            jcz_circuit.add_H(int(str(gate)[4:-1]))
+
+        elif gate.name == "CNOT":
+            gate_split = str(gate).split(',')
+            qubit1 = int(gate_split[0][5:])
+            qubit2 = int(gate_split[1][0:-1])
+            jcz_circuit.add_CNOT(qubit1, qubit2)
+
+        elif gate.name == "T":
+            jcz_circuit.add_T(int(str(gate)[2:-1]))
+
+        elif gate.name == "ZPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            jcz_circuit.add_Rz(qubit, phase) 
+
+        elif gate.name == "XPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            jcz_circuit.add_Rx(qubit, phase) 
+    return jcz_circuit
+'''
+add_H(qubit)
+add_CNOT(qubit1, qubit2)
+add_T(qubit)
+----------------
+add_J(qubit, phase)
+add_X(qubit)
+add_Z(qubit)
+add_S(qubit)
+add_Rz(qubit, phase)
+add_CZ(qubit1, qubit2)
+add_CRz(qubit1, qubit2, phase)
+
+
+add_J(qubit, phase)
+add_H(qubit)
+add_X(qubit)
+add_Z(qubit)
+add_T(qubit)
+add_S(qubit)
+add_Rz(qubit, phase)
+add_CZ(qubit1, qubit2)
+add_CNOT(qubit1, qubit2)
+add_CRz(qubit1, qubit2, phase)
+'''

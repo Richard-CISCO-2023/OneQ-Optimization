@@ -28,7 +28,7 @@ def generate_circuit(nqubit, depth):
 
     # zx.draw(circuit)
     # gates_list = [CZGate(0, 2), JGate(0, 1), CZGate(0, 1), CZGate(0, 1), CZGate(0, 1), JGate(1, 3), JGate(1, 2)]
-
+    print(jcz_circuit.gates)
     return  jcz_circuit.gates, nqubit
 
 def construct_qft(nqubit):

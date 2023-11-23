@@ -11,15 +11,23 @@ from Generate_State import *
 #           Multi Layers with Dependency                 #
 #                                                        #
 ##########################################################
-
+'''
 NetN = 25
 NetM = 25
 GraphN = 1000000
 SearchUpperBound = 20
+'''
 
-def create_net(alloca_nodes, graph):
+#NetN = 8
+#NetM = 8
+GraphN = 400000
+SearchUpperBound = 10
+
+
+def create_net(alloca_nodes, graph , NxM):
     # print("GraphN,",GraphN)
     net = nx.Graph()
+    NetN , NetM = NxM
     for key in alloca_nodes.keys():
         net.add_node(alloca_nodes[key], node_val = key, phase = graph.nodes[key]['phase'], pos = (alloca_nodes[key] % NetM, alloca_nodes[key] // NetM))
 
@@ -31,9 +39,11 @@ def create_net(alloca_nodes, graph):
                 net.add_node(i * NetM + j, node_val = - GraphN - 1, pos = (j, i))
     return net
 
-def save_net(pre_graph, net, alloca_pos, layer_index):
+def save_net(pre_graph, net, alloca_pos, layer_index , NxM):
     colors = []
     labels = {}
+    NetN , NetM = NxM
+    print(NetN , NetM )
     for nnode in net.nodes():
         # node already allocated but still in graph, show green color
         if nnode in alloca_pos:
@@ -65,9 +75,9 @@ def save_net(pre_graph, net, alloca_pos, layer_index):
     plt.show()
     return
 
-def count_pos_untake(net, pos):
+def count_pos_untake(net, pos, NxM):
     index = []
-
+    NetN , NetM = NxM
     if pos - NetM >= 0 and net.nodes[pos - NetM]['node_val'] == -GraphN - 1:
         index.append(pos - NetM)
 
@@ -84,19 +94,20 @@ def count_pos_untake(net, pos):
 
 # used for allocate the unallocated nodes, the path is one way like
 class OneWaySearchNode:
-    def __init__(self, net, path):
+    def __init__(self, net, path, NxM):
         self.net = net.copy()
         self.path = path.copy()
         self.f = 0
         self.free_space = set()
         for pnode in path:
-            for nnode in count_pos_untake(net, pnode):
+            for nnode in count_pos_untake(net, pnode, NxM):
                 self.free_space.add(nnode)
         self.f = len(self.free_space)
     def __lt__(self, other):
         return self.f > other.f      
 
-def find_pre_pos(net, path, pos, MaxDegree):
+def find_pre_pos(net, path, pos, MaxDegree, NxM):
+    NetN, NetM = NxM
     if pos - NetM >= 0 and pos - NetM in path and len(list(net.neighbors(pos - NetM))) <= MaxDegree - 1:
         return pos - NetM
 
@@ -161,7 +172,8 @@ def divide_rs(rs):
         bi += (len(line) + 1) // 3
     return bi
 
-def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times):
+def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times, NxM):
+    NetN , NetM = NxM
     auxiliary_nodes_used_times = {}
     auxiliary_nodes_used_avail_nodes = {}
     auxiliary_nodes_used_tri = []
@@ -177,7 +189,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
     # print(max_used_times_tri)
     initial_alloca_nodes = alloca_nodes.copy()
     # initial net
-    net = create_net(alloca_nodes, graph)
+    net = create_net(alloca_nodes, graph, NxM)
     
     failed_nodes = []
 
@@ -316,7 +328,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                 neigh_graph_nodes_unalloca_size = len(neigh_graph_nodes_unalloca)
 
                 search_set = []
-                search_node = OneWaySearchNode(net, [alloca_nodes[alloca_node]])
+                search_node = OneWaySearchNode(net, [alloca_nodes[alloca_node]], NxM)
                 heapq.heappush(search_set, search_node)
                 tri_flag = 0
                 search_index = 0
@@ -337,7 +349,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                         search_node_net = search_node.net
                         search_node_path = search_node.path
                         # if MaxDegree <= 4:
-                        count_pos_untake_list = count_pos_untake(search_node_net, search_node_path[-1])
+                        count_pos_untake_list = count_pos_untake(search_node_net, search_node_path[-1], NxM)
                         # else:
                         #     count_pos_untake_list = []
 
@@ -359,16 +371,16 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                             right_pos = untake_pos + 1
 
                             # check whether the path will lead to blockness
-                            if up_pos >= 0 and search_node_net.nodes[up_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, up_pos))  <= 1 and up_pos in alloca_incomplete_nodes:
+                            if up_pos >= 0 and search_node_net.nodes[up_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, up_pos, NxM))  <= 1 and up_pos in alloca_incomplete_nodes:
                                 continue
 
-                            if down_pos <= NetM * NetN - 1 and search_node_net.nodes[down_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, down_pos)) <= 2 and down_pos in alloca_incomplete_nodes:
+                            if down_pos <= NetM * NetN - 1 and search_node_net.nodes[down_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, down_pos,NxM)) <= 2 and down_pos in alloca_incomplete_nodes:
                                 continue
 
-                            if left_pos % NetM != NetM - 1 and search_node_net.nodes[left_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, left_pos)) <= 2 and left_pos in alloca_incomplete_nodes:
+                            if left_pos % NetM != NetM - 1 and search_node_net.nodes[left_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, left_pos,NxM)) <= 2 and left_pos in alloca_incomplete_nodes:
                                 continue
 
-                            if right_pos % NetM != 0 and search_node_net.nodes[right_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, right_pos)) <= 2 and right_pos in alloca_incomplete_nodes:
+                            if right_pos % NetM != 0 and search_node_net.nodes[right_pos]['node_val'] != - GraphN - 1 and len(count_pos_untake(search_node_net, right_pos,NxM)) <= 2 and right_pos in alloca_incomplete_nodes:
                                 continue
                             new_node_net = search_node_net.copy()
                             new_node_net.add_edge(search_node_path[-1], untake_pos)
@@ -391,7 +403,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                             new_node_net.nodes[untake_pos]['node_val'] = - alloca_node
                             new_node_path = search_node_path.copy()
                             new_node_path.append(untake_pos)
-                            new_node = OneWaySearchNode(new_node_net, new_node_path)
+                            new_node = OneWaySearchNode(new_node_net, new_node_path, NxM)
                             heapq.heappush(search_set, new_node)
                 
                 if search_node.f:
@@ -406,7 +418,7 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
                         unalloca_node = neigh_graph_nodes_unalloca[0]
                         neigh_graph_nodes_unalloca.remove(unalloca_node)
                         net.nodes[untake_pos]['node_val'] = unalloca_node
-                        pre_pos = find_pre_pos(net, search_node.path, untake_pos, MaxDegree)
+                        pre_pos = find_pre_pos(net, search_node.path, untake_pos, MaxDegree, NxM)
                         if pre_pos == -1:
                             neigh_graph_nodes_unalloca.append(unalloca_node)
                             continue
@@ -559,8 +571,17 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
     return net, graph, dgraph, alloca_nodes, alloca_nodes_cache
 
 
+def compact_graph_dynamic_general(fgraph, dgraph, rs, NxM):
+    NetN , NetM = NxM
 
-def compact_graph_dynamic_general(fgraph, dgraph, rs):
+    nodes = sorted(rs.nodes())
+    grid_side = int(len(nodes) ** 0.5)  # Determine the size of the grid
+    pos = {node: (node % grid_side, node // grid_side) for node in nodes}
+    nx.draw(rs,  pos=pos)
+    plt.title(f'RS generated state')
+    plt.savefig(f"saved_files/rs_qubit_gs")
+    
+
     max_used_times = divide_rs(rs)
     # get fgraph information
     graph = fgraph.copy()
@@ -570,7 +591,7 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
 
     # identify the mapping layer number
     layer_index = 0
-    
+    print("HERE2")
     alloca_nodes_cache = {}
     alloca_nodes = {}
     pre_graph_nodes = len(list(graph.nodes()))
@@ -611,9 +632,11 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
                     del alloca_nodes_cache[kkey]  
                     keys.remove(kkey)
                     index += 1                  
-
+        print("HERE3")
         # map and route current layer nodes 
-        net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times)  
+        net, graph, dgraph, alloca_nodes, alloca_nodes_cache = one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_times, NxM)  
+        
+        
         for gnode in graph.nodes():
             if len(list(graph.neighbors(gnode))) == 0:
                 graph.remove_node(gnode)
@@ -627,6 +650,9 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
         for gnode in alloca_nodes_cache.keys():
             if len(list(graph.neighbors(gnode))) == 0:
                 del alloca_nodes_cache[gnode]
+        
+        nx.draw(dgraph)
+        plt.savefig("saved_files/dgraph")
 
         net_list.append(net)
         alloca_values = []
@@ -634,9 +660,32 @@ def compact_graph_dynamic_general(fgraph, dgraph, rs):
             if net.nodes[nnode]['node_val'] > 0:
                 if net.nodes[nnode]['node_val'] in graph.nodes():
                     alloca_values.append(nnode)
-        # show the mapping net and save it
-        save_net(pre_graph, net, alloca_values, layer_index)
 
+        # Assuming pre_graph is your graph object
+        #nodes = sorted(pre_graph.nodes())
+        #grid_side = int(len(nodes) ** 0.5)  # Determine the size of the grid
+        #pos = {node: (node % grid_side, node // grid_side) for node in nodes}
+
+        # show the mapping net and save it
+        print("HERE5")
+        
+        # Assuming pre_graph is your graph object
+        # Apply a force-directed layout algorithm
+        pos = nx.spring_layout(pre_graph, iterations=50)
+
+        # Draw nodes with a specified size and alpha transparency
+        nx.draw_networkx_nodes(pre_graph, pos, node_size=50, alpha=0.7)
+
+        # Draw edges with reduced alpha and width
+        nx.draw_networkx_edges(pre_graph, pos, alpha=0.1, width=0.5)
+        
+        
+        nx.draw(pre_graph,  pos=pos, node_size= 10)
+        plt.title(f'Pre_graph visual')
+        plt.savefig(f"saved_files/pre_graph_qubit_gs")
+        
+        save_net(pre_graph, net, alloca_values, layer_index ,NxM=NxM)
+        print("HERE5")
         layer_index += 1  
         print(len(list(graph.nodes())))
         if len(list(graph.nodes())) == pre_graph_nodes:

@@ -9,10 +9,17 @@ import random
 #                                                        #
 ##########################################################
 
+'''
 NetN = 25
 NetM = 25
-GraphN = 10000000
+GraphN = 1000000
 SearchUpperBound = 20
+'''
+
+NetN = 8
+NetM = 8
+GraphN = 400000
+SearchUpperBound = 10
 
 def create_net(alloca_nodes):
     net = nx.Graph()
