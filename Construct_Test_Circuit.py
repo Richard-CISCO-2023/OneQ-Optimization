@@ -5,6 +5,8 @@ from JCZCircuit import *
 
 def generate_circuit(nqubit, depth):
     circuit = zx.generate.CNOT_HAD_PHASE_circuit(qubits=nqubit,depth=depth,clifford=False)
+
+    zx.draw(circuit)
     # zx.draw(circuit)
     # circuit = zx.optimize.basic_optimization(circuit.to_basic_gates())
     # zx.draw(circuit)
@@ -15,7 +17,7 @@ def generate_circuit(nqubit, depth):
     jcz_circuit = JCZCircuit()
     jcz_circuit.qubits_init(qubits)
     for gate in circuit.gates:
-        # print(gate)
+        print(gate)
         if gate.name == "HAD":
             jcz_circuit.add_H(int(str(gate)[4:-1]))
         elif gate.name == "CNOT":

@@ -4,7 +4,7 @@ import random
 
 def generate_state(nqubit, prob=0.2):
     G = nx.gnp_random_graph(nqubit, prob)
-    
+    #G = nx.complete_graph(nqubit)
     return G
 
 
