@@ -157,8 +157,122 @@ def pyZX_to_JCZ(pyZX_circuit, nqubit):
             qubit = int(qubit.split('(')[1])
             phase = eval(phase_str.split('=')[1].strip(')'))
             jcz_circuit.add_Rx(qubit, phase) 
+
+        else:
+            print(f"Following gate is missing: {gate}")
     return jcz_circuit
+
+from graphix import Circuit
+import numpy as np 
+
+
+def pyZX_to_graphix(pyZX_circuit, nqubit):
+    # Initalise the graphix circuit
+    circuit = Circuit(nqubit)
+
+    # Going through supported gate types
+    for gate in pyZX_circuit.gates:
+        if gate.name == "HAD":
+            qubit = int(str(gate)[4:-1])
+            circuit.h(qubit)
+        if gate.name == "HAD":
+            qubit = int(str(gate)[4:-1])
+            circuit.h(qubit)
+        elif gate.name == "CNOT":
+            gate_split = str(gate).split(',')
+            qubit1 = int(gate_split[0][5:])
+            qubit2 = int(gate_split[1][0:-1])
+            # CNOT(0,5)
+            circuit.cnot(qubit1, qubit2)
+
+        elif gate.name == "T":
+            return print("Encountered T gate, graphix not accurate")
         
+        elif gate.name == "S":
+            qubit = int(str(gate)[2:-1])
+            circuit.s(qubit)
+
+        elif gate.name == "ZPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            circuit.rz(qubit, phase)
+
+        elif gate.name == "CZ": # CZ(6,7) analysing 
+            return print("Encountered T gate, graphix not accurate")
+    
+        elif gate.name == "XPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            circuit.rx(qubit, phase)
+    
+        elif gate.name == "YPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            circuit.ry(qubit, phase)
+
+        elif gate.name == "ZPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            circuit.rz(qubit, phase)
+            
+        else:
+            print(f"Following gate is missing: {gate}")
+
+    return circuit
+
+import qiskit as qk
+
+
+def pyZX_to_gate_circuit(pyZX_circuit, nqubit):
+    # Initalise the graphix circuit
+    q = qk.QuantumRegister(nqubit)
+    circuit = qk.QuantumCircuit(q)
+
+    # Going through supported gate types
+    for gate in pyZX_circuit.gates:
+        if gate.name == "HAD":
+            qubit = int(str(gate)[4:-1])
+            circuit.h(q[qubit])
+
+        elif gate.name == "CNOT":
+            gate_split = str(gate).split(',')
+            qubit1 = int(gate_split[0][5:])
+            qubit2 = int(gate_split[1][0:-1])
+            # CNOT(0,5)
+            circuit.cnot(q[qubit1],q[qubit2])
+
+        elif gate.name == "T":
+            qubit = int(str(gate)[2:-1])
+            circuit.t(q[qubit])
+
+        elif gate.name == "S":
+            qubit = int(str(gate)[2:-1])
+            circuit.s(q[qubit])
+
+        elif gate.name == "ZPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            circuit.rz(phase, q[qubit])
+
+        elif gate.name == "CZ": # CZ(6,7) analysing 
+            circuit.cz(q[qubit1],q[qubit2])
+    
+        elif gate.name == "XPhase":
+            qubit, phase_str = str(gate).split(',')
+            qubit = int(qubit.split('(')[1])
+            phase = eval(phase_str.split('=')[1].strip(')'))
+            circuit.rx(phase, q[qubit])
+
+        else:
+            print(f"Following gate is missing: {gate}")
+            
+    return circuit
+
 '''
 add_H(qubit)
 add_CNOT(qubit1, qubit2)
