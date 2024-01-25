@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import networkx as nx
 
 def reduce_redundancy(graph):
@@ -50,7 +51,7 @@ def signal_shift(graph):
                     if not (graph.has_edge(head_node, ntn) and graph[head_node][ntn]['dependency'] == 'z'):
                         graph.add_edge(head_node, ntn)
                         graph[head_node][ntn]['dependency'] = 'z'
-                        zgraph.add_edge(head_node, ntn)
+                        zgraph.add_edge(head_node, ntn )
 
                 elif graph[tail_node][ntn]['dependency'] == 'x':
                     if not (graph.has_edge(head_node, ntn) and graph[head_node][ntn]['dependency'] == 'x'):
@@ -61,7 +62,31 @@ def signal_shift(graph):
     print ("shift signal finished")    
     return graph
 
-def determine_dependency(graph):
+def draw_graph(graph, title = "Graph" , colours=None, labels = None):
+    #pos = nx.get_node_attributes(graph, 'pos')
+    #node_colours = nx.get_node_attributes(graph, '')
+    #pos = nx.spring_layout(graph)
+    pos = nx.kamada_kawai_layout(graph, scale = 2)
+    pos = nx.shell_layout(graph)
+    plt.figure()
+    nx.draw_networkx_nodes(graph, pos=pos, node_color= colours,  node_size=30)
+    nx.draw_networkx_labels(graph, pos=pos, labels = labels , font_size= 6)
+    # Separate edges by dependency
+    edges_x = [(u, v) for u, v, d in graph.edges(data=True) if d.get('dependency') == 'x']
+    edges_z = [(u, v) for u, v, d in graph.edges(data=True) if d.get('dependency') == 'z']
+    
+    # Draw 'dependency x' edges as dotted lines
+    nx.draw_networkx_edges(graph, pos, edgelist=edges_x, style='solid', edge_color= 'red')
+    
+    # Draw 'dependency z' edges as solid lines (default)
+    nx.draw_networkx_edges(graph, pos, edgelist=edges_z, style='dotted', edge_color= 'green')
+    
+    edge_labels = nx.get_edge_attributes(graph, 'dependency')
+    nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
+    plt.title(title)
+    plt.show()
+
+def determine_dependency(graph, colours, labels):
     determined_graph = nx.DiGraph()
     for nnode in graph.nodes():
         determined_graph.add_node(nnode, pos = graph.nodes[nnode]['pos'], phase = graph.nodes[nnode]['phase'])
@@ -76,10 +101,27 @@ def determine_dependency(graph):
                 for ssnode in graph.successors(snode):
                     determined_graph.add_edge(nnode, ssnode)
                     determined_graph[nnode][ssnode]['dependency'] = 'z'
-    # pos = nx.get_node_attributes(determined_graph, 'pos')
-    # nx.draw(determined_graph, pos = pos, node_size = 30)
+                    print("Added X dependency")
+    pos = nx.get_node_attributes(determined_graph, 'pos')
+
+    print('-------------- \nBelow is determine_dependency result \n-------------- ')
+    
+    print('-------------- \nStep 1.) determined_graph\n-------------- ')
+    draw_graph(determined_graph, colours = colours, labels= labels , title = "determine_dependency graph" )
+    #plt.figure()
+    #nx.draw(determined_graph, pos = pos, node_size = 30)
+    #plt.title("Determine Dependency graph")
+
+    print('-------------- \nStep 2.) reduce_redudancy\n-------------- ')
     determined_graph = reduce_redundancy(determined_graph)
-    # pos = nx.get_node_attributes(determined_graph, 'pos')
-    # nx.draw(determined_graph, pos = pos, node_size = 30)
+    draw_graph(determined_graph, title = "reduced redundancy determine dependency graph",colours = colours,  labels= labels)
+    #pos = nx.get_node_attributes(determined_graph, 'pos')
+    #plt.figure()
+    #nx.draw(determined_graph, pos = pos, node_size = 30)
+    
+    print('-------------- \nStep 3.) signal shifted determine dependency graph\n-------------- ')
     determined_graph = signal_shift(determined_graph)
+    draw_graph(determined_graph, title = "Signal shifted Determine Dependency graph", colours = colours,  labels= labels)
+    
     return determined_graph
+

@@ -2,6 +2,7 @@ import pyzx as zx
 import networkx as nx
 import JCZCircuit as JCZ
 
+
 # using pyzx to help draw cz j circuit, assume xphase to be j phase
 def show_circuit(qubits, gates_list):
     c = zx.Circuit(qubit_amount=qubits)
@@ -27,6 +28,7 @@ def show_circuit(qubits, gates_list):
     #re_c = JCZ.pyZX_to_JCZ(c, 4) reinputting JCZ
     
     return
+
 
 def add_undirected_edge(graph, node1, node2):
     graph.add_edge(node1, node2)
@@ -160,4 +162,4 @@ def generate_graph_state(gates_list, qubits):
     nx.draw(graph, pos = node_pos, node_color = colors, node_size = 30, labels = labels,font_size = 6)
     plt.title('Generate graph state output')
     plt.show() 
-    return graph, input_nodes, colors
+    return graph, input_nodes, colors, labels

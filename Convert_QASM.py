@@ -1,7 +1,7 @@
 def replace_sx_with_rx(file_path):
     # Construct the new file name
     new_file_name = file_path.replace('.qasm', '_modified.qasm')
-
+    
     # Open the original file
     with open(file_path, 'r') as file:
         lines = file.readlines()

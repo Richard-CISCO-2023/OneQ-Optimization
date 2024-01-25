@@ -567,6 +567,16 @@ def one_layer_map(graph, dgraph, alloca_nodes, alloca_nodes_cache, max_used_time
             for nnode in all_nodes:
                 if len(list(graph.neighbors(nnode))) == 0:
                     graph.remove_node(nnode)  
+            
+        plt.figure()
+        nx.draw(net)
+        plt.title("net plot in the middle if one_layer_map")
+        plt.figure()
+        nx.draw(graph)
+        plt.title("graph plot in the middle if one_layer_map")
+        plt.figure()
+        nx.draw(dgraph)
+        plt.title("Dgraph plot in the middle if one_layer_map")
     return net, graph, dgraph, alloca_nodes, alloca_nodes_cache
 
 
